@@ -11,6 +11,7 @@
 - [ ] README includes setup instructions, sample data, and clear run guidance.
 - [ ] Submission highlights where Codex accelerated the workflow and where key decisions were made.
 - [ ] `/feedback` Codex Session ID is from the session where the majority of core functionality was built.
+- [ ] Submission attribution matches the ChatGPT-to-Codex handoff recorded in `docs/BUILD_WEEK_PROVENANCE.md`.
 - [ ] Hosted or sandboxed judge path works without rebuilding the project.
 - [ ] Supported platforms and installation instructions are explicit.
 - [ ] Project remains free and accessible through the judging period.

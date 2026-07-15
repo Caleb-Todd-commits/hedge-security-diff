@@ -52,7 +52,7 @@ node dist/cli/index.cjs replay examples/replays/upload-invariant --output .hedge
 ## Install into a judge repository
 
 ```bash
-hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@v0.5.1 --full
+hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f --full
 hedge doctor
 hedge init --configure
 ```

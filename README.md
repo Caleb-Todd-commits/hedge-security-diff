@@ -3,6 +3,8 @@
 **Security architecture diffs for pull requests.**
 
 [![CI](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml/badge.svg)](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml)
+[![Action self-test](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/action-self-test.yml/badge.svg)](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/action-self-test.yml)
+[![Release](https://img.shields.io/github/v/release/Caleb-Todd-commits/hedge-security-diff)](https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/tag/v0.5.1)
 [![Demo](https://img.shields.io/badge/demo-security%20diff-1f6f50)](https://caleb-todd-commits.github.io/hedge-security-diff/)
 
 > Git shows which lines changed. Hedge shows how the system's attack surface, trust boundaries, privilege, controls, and data flows changed.
@@ -62,12 +64,12 @@ Supported judge platform: macOS or Linux with Node.js 22 or newer and Git. The G
 Install Hedge into another repository after publishing and pinning the Action:
 
 ```bash
-hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@v0.5.1 --full
+hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f --full
 hedge doctor
 hedge init --configure
 ```
 
-The tag above is convenient for judging. For production, resolve the release tag and pin `uses:` to its full immutable commit SHA.
+The immutable revision above is the green v0.5.1 release commit.
 
 Develop from this source package:
 
@@ -161,13 +163,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: Caleb-Todd-commits/hedge-security-diff@v0.5.1
+      - uses: Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           github-token: ${{ github.token }}
 ```
 
-Release tags make evaluation convenient; production workflows should replace `v0.5.1` with the release's full commit SHA.
+The example is pinned to the full v0.5.1 commit SHA so a mutable tag cannot silently change the Action being executed.
 
 See `examples/workflows/` for the PR check, model refresh, Codex remediation, and counterfactual verification workflows.
 
