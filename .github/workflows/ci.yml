@@ -11,14 +11,22 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run schemas
+      - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
       - run: npm run eval
+      - name: Verify generated artifacts are current
+        run: git diff --exit-code -- schemas eval/results.json eval/results.md
       - run: npm run build
+      - run: npm run validate:release
+      - run: npm run validate:demo
+      - run: npm run audit:high

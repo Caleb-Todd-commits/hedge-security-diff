@@ -11,11 +11,17 @@
 - [ ] README includes setup instructions, sample data, and clear run guidance.
 - [ ] Submission highlights where Codex accelerated the workflow and where key decisions were made.
 - [ ] `/feedback` Codex Session ID is from the session where the majority of core functionality was built.
+- [ ] Hosted or sandboxed judge path works without rebuilding the project.
+- [ ] Supported platforms and installation instructions are explicit.
+- [ ] Project remains free and accessible through the judging period.
+- [ ] All submission materials are English or include English translations.
+- [ ] Video contains no unlicensed music, trademarks, or other third-party material.
 
 ## Project evidence
 
 - [ ] All competition work has dated commits inside the allowed window.
 - [ ] Baseline tag or branch records any pre-existing foundation.
+- [ ] `docs/BUILD_WEEK_PROVENANCE.md` matches the preserved ChatGPT export and Git history.
 - [ ] `DECISIONS.md` distinguishes human and model decisions.
 - [ ] Eval results include raw counts and limitations.
 - [ ] Exact model IDs and evaluation date recorded.

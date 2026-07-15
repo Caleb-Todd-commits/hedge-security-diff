@@ -3,7 +3,6 @@
   "type": "object",
   "properties": {
     "recordedAt": {
-      "default": "2026-07-15T03:10:35.088Z",
       "type": "string"
     },
     "recordedBy": {

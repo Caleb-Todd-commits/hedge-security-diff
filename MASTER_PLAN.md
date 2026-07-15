@@ -9,7 +9,7 @@
 **Supporting lines:**
 
 - A threat model that grows with your code.
-- Hedge finds it. Codex fixes it. Evidence proves it.
+- Hedge surfaces the change. Codex proposes a repair. Evidence verifies the result.
 - Every pull request deserves a security diff.
 
 **Track:** Developer Tools.

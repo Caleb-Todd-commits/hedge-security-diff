@@ -30,7 +30,7 @@
 | Proof bundle                              | Working                         | copied artifacts, SHA-256 manifest, `verify-bundle`                                      |
 | Public JSON Schemas                       | Generated                       | `schemas/*.schema.json`                                                                  |
 | DriftBench                                | 45 cases pass                   | `eval/results.md`, `eval/results.json`                                                   |
-| Unit/contract/schema tests                | 120 pass                        | `npm test`                                                                               |
+| Unit/contract/schema tests                | 121 pass                        | `npm test`                                                                               |
 | Demo repository                           | Working generator               | prepared branches and executable witness                                                 |
 
 ## Implemented but not live-validated here
