@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "recordedAt": {
+      "default": "2026-07-15T03:10:35.088Z",
+      "type": "string"
+    },
+    "recordedBy": {
+      "default": "unknown",
+      "type": "string"
+    },
+    "vulnerableRevision": {
+      "type": "string"
+    },
+    "repairedRevision": {
+      "type": "string"
+    },
+    "vulnerableRevisionWitnessSucceeded": {
+      "type": "boolean"
+    },
+    "repairedRevisionWitnessBlocked": {
+      "type": "boolean"
+    },
+    "legitimateBehaviorPassed": {
+      "type": "boolean"
+    },
+    "architectureControlChanged": {
+      "type": "boolean"
+    },
+    "commands": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "artifacts": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "recordedAt",
+    "recordedBy",
+    "vulnerableRevisionWitnessSucceeded",
+    "repairedRevisionWitnessBlocked",
+    "legitimateBehaviorPassed",
+    "architectureControlChanged",
+    "commands",
+    "notes",
+    "artifacts"
+  ],
+  "additionalProperties": false
+}

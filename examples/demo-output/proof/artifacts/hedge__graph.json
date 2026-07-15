@@ -1,0 +1,409 @@
+{
+  "schemaVersion": "0.1",
+  "generatedAt": "2026-07-15T01:09:44.359Z",
+  "repository": "local",
+  "framework": "nextjs",
+  "nodes": [
+    {
+      "id": "auth-control:7bf2b37d213596d1",
+      "kind": "auth-control",
+      "label": "Authentication check: auth",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 2,
+          "snippet": "const session = await auth();",
+          "extractor": "typescript-ast-control"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "file": "app/api/notes/route.ts",
+        "controlType": "authentication"
+      }
+    },
+    {
+      "id": "authorization-control:f2e1d5e80a7ef898",
+      "kind": "authorization-control",
+      "label": "Resource ownership constraint",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 4,
+          "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+          "extractor": "typescript-ast-control"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "file": "app/api/notes/route.ts",
+        "controlType": "ownership"
+      }
+    },
+    {
+      "id": "data-model:Note",
+      "kind": "data-model",
+      "label": "Note",
+      "trustZone": "data",
+      "evidence": [
+        {
+          "file": "prisma/schema.prisma",
+          "line": 6,
+          "snippet": "model Note {",
+          "extractor": "prisma-extractor"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "model": "Note",
+        "fields": [
+          "id",
+          "ownerId",
+          "owner",
+          "title",
+          "body"
+        ],
+        "sensitiveFields": [],
+        "sensitive": false
+      }
+    },
+    {
+      "id": "data-model:User",
+      "kind": "data-model",
+      "label": "User",
+      "trustZone": "data",
+      "evidence": [
+        {
+          "file": "prisma/schema.prisma",
+          "line": 1,
+          "snippet": "model User {",
+          "extractor": "prisma-extractor"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "model": "User",
+        "fields": [
+          "id",
+          "notes"
+        ],
+        "sensitiveFields": [],
+        "sensitive": true
+      }
+    },
+    {
+      "id": "database:754eec4f7490bdab",
+      "kind": "database",
+      "label": "Database read: note.findMany",
+      "trustZone": "data",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 4,
+          "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "controls": [
+        {
+          "type": "authentication",
+          "label": "Authentication check: auth",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 2,
+              "snippet": "const session = await auth();",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.93
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership constraint",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 4,
+              "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.81
+        }
+      ],
+      "metadata": {
+        "file": "app/api/notes/route.ts",
+        "model": "note",
+        "operation": "findMany",
+        "userControlled": false
+      }
+    },
+    {
+      "id": "dependency:@aws-sdk/client-s3",
+      "kind": "dependency",
+      "label": "@aws-sdk/client-s3@^3.0.0",
+      "trustZone": "external",
+      "evidence": [
+        {
+          "file": "package.json",
+          "extractor": "package-extractor"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "name": "@aws-sdk/client-s3",
+        "version": "^3.0.0"
+      }
+    },
+    {
+      "id": "dependency:next",
+      "kind": "dependency",
+      "label": "next@16.0.0",
+      "trustZone": "external",
+      "evidence": [
+        {
+          "file": "package.json",
+          "extractor": "package-extractor"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "name": "next",
+        "version": "16.0.0"
+      }
+    },
+    {
+      "id": "dependency:prisma",
+      "kind": "dependency",
+      "label": "prisma@^6.0.0",
+      "trustZone": "external",
+      "evidence": [
+        {
+          "file": "package.json",
+          "extractor": "package-extractor"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "name": "prisma",
+        "version": "^6.0.0"
+      }
+    },
+    {
+      "id": "entrypoint:7687698fbe395d3f",
+      "kind": "entrypoint",
+      "label": "GET /api/notes",
+      "trustZone": "public",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 1,
+          "snippet": "export async function GET() {",
+          "extractor": "nextjs-ast-route"
+        }
+      ],
+      "controls": [
+        {
+          "type": "authentication",
+          "label": "Authentication check: auth",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 2,
+              "snippet": "const session = await auth();",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.93
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership constraint",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 4,
+              "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.81
+        }
+      ],
+      "metadata": {
+        "method": "GET",
+        "path": "/api/notes",
+        "file": "app/api/notes/route.ts",
+        "framework": "nextjs",
+        "handler": "GET",
+        "extractor": "typescript-ast"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:3af551256deab10a",
+      "from": "entrypoint:7687698fbe395d3f",
+      "to": "authorization-control:f2e1d5e80a7ef898",
+      "kind": "authorizes",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 4,
+          "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+          "extractor": "typescript-ast-control"
+        }
+      ],
+      "controls": [
+        {
+          "type": "ownership",
+          "label": "Resource ownership constraint",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 4,
+              "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.81
+        }
+      ],
+      "confidence": 0.81
+    },
+    {
+      "id": "edge:8ffdc332815a44a2",
+      "from": "entrypoint:7687698fbe395d3f",
+      "to": "database:754eec4f7490bdab",
+      "kind": "reads",
+      "label": "Database read: note.findMany",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 4,
+          "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "controls": [
+        {
+          "type": "authentication",
+          "label": "Authentication check: auth",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 2,
+              "snippet": "const session = await auth();",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.93
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership constraint",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 4,
+              "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.81
+        }
+      ],
+      "confidence": 0.94
+    },
+    {
+      "id": "edge:d525216bd1bb2930",
+      "from": "database:754eec4f7490bdab",
+      "to": "data-model:Note",
+      "kind": "reads",
+      "label": "Database read: note.findMany",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 4,
+          "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "controls": [
+        {
+          "type": "authentication",
+          "label": "Authentication check: auth",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 2,
+              "snippet": "const session = await auth();",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.93
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership constraint",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 4,
+              "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.81
+        }
+      ],
+      "confidence": 0.95
+    },
+    {
+      "id": "edge:ffc769fcaeac42ef",
+      "from": "entrypoint:7687698fbe395d3f",
+      "to": "auth-control:7bf2b37d213596d1",
+      "kind": "authenticates",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 2,
+          "snippet": "const session = await auth();",
+          "extractor": "typescript-ast-control"
+        }
+      ],
+      "controls": [
+        {
+          "type": "authentication",
+          "label": "Authentication check: auth",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 2,
+              "snippet": "const session = await auth();",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.93
+        }
+      ],
+      "confidence": 0.93
+    }
+  ],
+  "assumptions": [
+    "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
+    "Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.",
+    "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
+    "Repository evidence coverage: 8/8 candidate files and 4290 bytes analyzed."
+  ],
+  "unknowns": [
+    "Sensitive assets were not confirmed in .hedge/context.yml.",
+    "Internet-facing deployment surfaces were not confirmed in .hedge/context.yml.",
+    "Authentication mechanisms were inferred from code and not confirmed in .hedge/context.yml.",
+    "Privileged roles were not confirmed in .hedge/context.yml.",
+    "Trusted external services were not confirmed in .hedge/context.yml."
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "surfaceChanged": true,
+  "minimumFindings": 2,
+  "expectedTitlesContain": ["privileged secret", "logging path"]
+}

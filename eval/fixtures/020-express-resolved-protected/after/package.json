@@ -1,0 +1,8 @@
+{
+  "name": "fixture",
+  "private": true,
+  "dependencies": {
+    "express": "5.0.0",
+    "prisma": "6.0.0"
+  }
+}

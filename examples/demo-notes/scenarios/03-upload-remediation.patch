@@ -1,0 +1,20 @@
+diff --git a/app/api/files/upload/route.ts b/app/api/files/upload/route.ts
+--- a/app/api/files/upload/route.ts
++++ b/app/api/files/upload/route.ts
+@@
+ export async function POST(request: Request) {
++  const session = await auth();
++  if (!session) return new Response("Unauthorized", { status: 401 });
+   const form = await request.formData();
+-  const file = form.get("file");
++  const file = form.get("file") as File;
++  const allowedTypes = ["image/png", "image/jpeg", "application/pdf"];
++  const maxFileSize = 5_000_000;
++  if (!allowedTypes.includes(file.type)) return new Response("Unsupported", { status: 415 });
++  if (file.size > maxFileSize) return new Response("Too large", { status: 413 });
+   await client.send(new PutObjectCommand({
+     Bucket: process.env.UPLOAD_BUCKET,
+-    Key: crypto.randomUUID(),
++    Key: `${session.user.id}/${crypto.randomUUID()}`,
+     Body: file
+   }));

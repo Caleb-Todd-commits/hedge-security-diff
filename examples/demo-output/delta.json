@@ -1,0 +1,112 @@
+{
+  "addedNodes": [
+    {
+      "id": "entrypoint:7821443e29938cb4",
+      "kind": "entrypoint",
+      "label": "POST /api/files/upload",
+      "trustZone": "public",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 4,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route"
+        }
+      ],
+      "controls": [
+        {
+          "type": "content-type",
+          "label": "Content type allowlist",
+          "evidence": [
+            {
+              "file": "app/api/files/upload/route.ts",
+              "line": 7,
+              "snippet": "const decision = evaluateUpload({",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.88
+        }
+      ],
+      "metadata": {
+        "method": "POST",
+        "path": "/api/files/upload",
+        "file": "app/api/files/upload/route.ts",
+        "framework": "nextjs",
+        "handler": "POST",
+        "extractor": "typescript-ast"
+      }
+    },
+    {
+      "id": "storage:ac193b90989396d6",
+      "kind": "storage",
+      "label": "Storage write",
+      "trustZone": "data",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 13,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "controls": [
+        {
+          "type": "content-type",
+          "label": "Content type allowlist",
+          "evidence": [
+            {
+              "file": "app/api/files/upload/route.ts",
+              "line": 7,
+              "snippet": "const decision = evaluateUpload({",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.88
+        }
+      ],
+      "metadata": {
+        "file": "app/api/files/upload/route.ts",
+        "callee": "client.send",
+        "userControlled": true
+      }
+    }
+  ],
+  "removedNodes": [],
+  "changedNodes": [],
+  "addedEdges": [
+    {
+      "id": "edge:39aed8b5cfeb2596",
+      "from": "entrypoint:7821443e29938cb4",
+      "to": "storage:ac193b90989396d6",
+      "kind": "writes",
+      "label": "Storage write",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 13,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "controls": [
+        {
+          "type": "content-type",
+          "label": "Content type allowlist",
+          "evidence": [
+            {
+              "file": "app/api/files/upload/route.ts",
+              "line": 7,
+              "snippet": "const decision = evaluateUpload({",
+              "extractor": "typescript-ast-control"
+            }
+          ],
+          "confidence": 0.88
+        }
+      ],
+      "confidence": 0.94
+    }
+  ],
+  "removedEdges": [],
+  "changedEdges": []
+}

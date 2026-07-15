@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{2,63}$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 5
+    },
+    "severity": {
+      "default": "high",
+      "type": "string",
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "applies_to": {
+      "default": {
+        "kinds": [],
+        "trust_zones": [],
+        "methods": []
+      },
+      "type": "object",
+      "properties": {
+        "kinds": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "entrypoint",
+              "middleware",
+              "auth-control",
+              "authorization-control",
+              "database",
+              "data-model",
+              "storage",
+              "external-service",
+              "secret",
+              "dependency",
+              "component"
+            ]
+          }
+        },
+        "trust_zones": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["public", "application", "privileged", "data", "external", "unknown"]
+          }
+        },
+        "methods": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "label_pattern": {
+          "type": "string"
+        }
+      },
+      "required": ["kinds", "trust_zones", "methods"],
+      "additionalProperties": false
+    },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "controls": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "authentication",
+              "authorization",
+              "validation",
+              "rate-limit",
+              "size-limit",
+              "content-type",
+              "encryption",
+              "logging",
+              "ownership",
+              "other"
+            ]
+          }
+        }
+      },
+      "required": ["controls"],
+      "additionalProperties": false
+    },
+    "rationale": {
+      "default": "Repository-defined security invariant",
+      "type": "string"
+    },
+    "enabled": {
+      "default": true,
+      "type": "boolean"
+    }
+  },
+  "required": ["id", "description", "severity", "applies_to", "requires", "rationale", "enabled"],
+  "additionalProperties": false
+}

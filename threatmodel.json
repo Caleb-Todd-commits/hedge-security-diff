@@ -1,0 +1,423 @@
+{
+  "schemaVersion": "0.1",
+  "generatedAt": "2026-07-15T03:16:18.474Z",
+  "stateIntegrity": {
+    "graphHash": "9d3e5d608610b3cfb56f897b1e131a32f9694c7531a2e8a5f38aa983e2ef85fa",
+    "registerHash": "0a5ce416cb92142efefbc86a2c5d4081b035ed9519db9309381d0019177eac0b",
+    "algorithm": "sha256-stable-json-v2",
+    "configHash": "7c757ebc0bfee31a7605ed6696437671e4d1ae692b49f8a6e6460f0ef1f3b773",
+    "contextHash": "5d5bf479d1b8b770034051e3195a42de7d970768f42992243c83a6b3ca46733a",
+    "toolVersion": "0.5.0"
+  },
+  "nextRiskNumber": 1,
+  "graph": {
+    "schemaVersion": "0.1",
+    "generatedAt": "2026-07-15T03:16:18.457Z",
+    "repository": "local",
+    "framework": "nextjs",
+    "nodes": [
+      {
+        "id": "auth-control:context:89aab952967de433",
+        "kind": "auth-control",
+        "label": "OpenAI authentication uses a repository secret in the hackathon example; workload identity is preferred for production",
+        "trustZone": "application",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true
+        }
+      },
+      {
+        "id": "auth-control:context:cbf9288723423d05",
+        "kind": "auth-control",
+        "label": "GitHub repository permissions identify maintainers and workflow actors",
+        "trustZone": "application",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true
+        }
+      },
+      {
+        "id": "component:role:cc376e7c003f6b31",
+        "kind": "component",
+        "label": "Privileged role: GitHub Actions bot in trusted publisher jobs",
+        "trustZone": "privileged",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "privilegedRole": true
+        }
+      },
+      {
+        "id": "component:role:e5edff0b9caa3ccb",
+        "kind": "component",
+        "label": "Privileged role: Repository maintainers with write permission",
+        "trustZone": "privileged",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "privilegedRole": true
+        }
+      },
+      {
+        "id": "component:role:f5d324e0dbf0ddde",
+        "kind": "component",
+        "label": "Privileged role: OpenAI organization administrators configuring workload identity",
+        "trustZone": "privileged",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "privilegedRole": true
+        }
+      },
+      {
+        "id": "data-model:context:1949d29087d8d631",
+        "kind": "data-model",
+        "label": "OpenAI credentials or short-lived workload identities",
+        "trustZone": "data",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "sensitiveAsset": true
+        }
+      },
+      {
+        "id": "data-model:context:6bd9613716aad913",
+        "kind": "data-model",
+        "label": "GitHub tokens and repository write authority",
+        "trustZone": "data",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "sensitiveAsset": true
+        }
+      },
+      {
+        "id": "data-model:context:78b05125287ae02b",
+        "kind": "data-model",
+        "label": "Maintainer approval boundary for Codex remediation",
+        "trustZone": "data",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "sensitiveAsset": true
+        }
+      },
+      {
+        "id": "data-model:context:a42b5c90eea88e5d",
+        "kind": "data-model",
+        "label": "Integrity of threatmodel.json, finding history, and verification evidence",
+        "trustZone": "data",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "sensitiveAsset": true
+        }
+      },
+      {
+        "id": "dependency:openai",
+        "kind": "dependency",
+        "label": "openai@^6.46.0",
+        "trustZone": "external",
+        "evidence": [
+          {
+            "file": "package.json",
+            "extractor": "package-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "openai",
+          "version": "^6.46.0"
+        }
+      },
+      {
+        "id": "entrypoint:a81fdb37e9c82f4c",
+        "kind": "entrypoint",
+        "label": "Workflow CI (pull_request)",
+        "trustZone": "public",
+        "evidence": [
+          {
+            "file": ".github/workflows/ci.yml",
+            "line": 6,
+            "snippet": "pull_request:",
+            "extractor": "github-workflow-metadata"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "method": "WORKFLOW",
+          "event": "pull_request",
+          "file": ".github/workflows/ci.yml",
+          "pullRequestTarget": false,
+          "permissions": {
+            "workflow:contents": "read"
+          },
+          "writePermissions": [],
+          "checksOutPullRequestHead": false,
+          "untrustedInterpolationInRun": false,
+          "checkoutPersistsCredentials": true
+        }
+      },
+      {
+        "id": "entrypoint:bdc60ceb8a465b49",
+        "kind": "entrypoint",
+        "label": "GitHub Action: Hedge Security Diff",
+        "trustZone": "application",
+        "evidence": [
+          {
+            "file": "action.yml",
+            "line": 1,
+            "snippet": "name: Hedge Security Diff",
+            "extractor": "github-action-metadata"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "method": "ACTION",
+          "file": "action.yml"
+        }
+      },
+      {
+        "id": "entrypoint:cc80244f096f4928",
+        "kind": "entrypoint",
+        "label": "Workflow CI (push)",
+        "trustZone": "application",
+        "evidence": [
+          {
+            "file": ".github/workflows/ci.yml",
+            "line": 4,
+            "snippet": "push:",
+            "extractor": "github-workflow-metadata"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "method": "WORKFLOW",
+          "event": "push",
+          "file": ".github/workflows/ci.yml",
+          "pullRequestTarget": false,
+          "permissions": {
+            "workflow:contents": "read"
+          },
+          "writePermissions": [],
+          "checksOutPullRequestHead": false,
+          "untrustedInterpolationInRun": false,
+          "checkoutPersistsCredentials": true
+        }
+      },
+      {
+        "id": "external-service:context:0be45133050ea32f",
+        "kind": "external-service",
+        "label": "OpenAI Responses API and Codex GitHub Action",
+        "trustZone": "external",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "trusted": true
+        }
+      },
+      {
+        "id": "external-service:context:5fefe690ac00b9e2",
+        "kind": "external-service",
+        "label": "GitHub API and GitHub Actions",
+        "trustZone": "external",
+        "evidence": [],
+        "controls": [],
+        "metadata": {
+          "manualContext": true,
+          "trusted": true
+        }
+      },
+      {
+        "id": "secret:07d154c042bee004",
+        "kind": "secret",
+        "label": "OPENAI_API_KEY",
+        "trustZone": "privileged",
+        "evidence": [
+          {
+            "file": "src/action/index.ts",
+            "line": 33,
+            "snippet": "const apiKey = core.getInput(\"openai-api-key\") || process.env.OPENAI_API_KEY;",
+            "extractor": "typescript-ast-secret"
+          },
+          {
+            "file": "src/cli/index.ts",
+            "line": 231,
+            "snippet": "apiKey: options.offline ? undefined : process.env.OPENAI_API_KEY,",
+            "extractor": "typescript-ast-secret"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "OPENAI_API_KEY"
+        }
+      },
+      {
+        "id": "secret:6b6b2d1fd282b2e6",
+        "kind": "secret",
+        "label": "GITHUB_TOKEN",
+        "trustZone": "privileged",
+        "evidence": [
+          {
+            "file": "src/action/index.ts",
+            "line": 34,
+            "snippet": "const githubToken = core.getInput(\"github-token\") || process.env.GITHUB_TOKEN;",
+            "extractor": "typescript-ast-secret"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "GITHUB_TOKEN"
+        }
+      },
+      {
+        "id": "secret:action-input:github-token",
+        "kind": "secret",
+        "label": "github-token",
+        "trustZone": "privileged",
+        "evidence": [
+          {
+            "file": "action.yml",
+            "snippet": "github-token: GitHub token used to post or update the PR report.",
+            "extractor": "github-action-metadata"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "inputName": "github-token"
+        }
+      },
+      {
+        "id": "secret:action-input:openai-api-key",
+        "kind": "secret",
+        "label": "openai-api-key",
+        "trustZone": "privileged",
+        "evidence": [
+          {
+            "file": "action.yml",
+            "snippet": "openai-api-key: OpenAI API key. Prefer workload identity federation for production.",
+            "extractor": "github-action-metadata"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "inputName": "openai-api-key"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge:2b98dd75d6c02557",
+        "from": "entrypoint:bdc60ceb8a465b49",
+        "to": "secret:action-input:openai-api-key",
+        "kind": "uses-secret",
+        "label": "GitHub Action: Hedge Security Diff receives openai-api-key",
+        "evidence": [
+          {
+            "file": "action.yml",
+            "snippet": "openai-api-key: OpenAI API key. Prefer workload identity federation for production.",
+            "extractor": "github-action-metadata"
+          }
+        ],
+        "controls": [],
+        "confidence": 1
+      },
+      {
+        "id": "edge:7c27c7048344cc78",
+        "from": "entrypoint:bdc60ceb8a465b49",
+        "to": "secret:action-input:github-token",
+        "kind": "uses-secret",
+        "label": "GitHub Action: Hedge Security Diff receives github-token",
+        "evidence": [
+          {
+            "file": "action.yml",
+            "snippet": "github-token: GitHub token used to post or update the PR report.",
+            "extractor": "github-action-metadata"
+          }
+        ],
+        "controls": [],
+        "confidence": 1
+      }
+    ],
+    "assumptions": [
+      "Maintainer-confirmed internet-facing surfaces: Pull-request event and diff evidence received through the GitHub API, issue_comment commands such as @hedge fix, Published GitHub Action inputs, OpenAI Responses API requests from the trusted analysis job.",
+      "Maintainer-confirmed authentication mechanisms: GitHub repository permissions identify maintainers and workflow actors, OpenAI authentication uses a repository secret in the hackathon example; workload identity is preferred for production.",
+      "Maintainer-confirmed privileged roles: Repository maintainers with write permission, GitHub Actions bot in trusted publisher jobs, OpenAI organization administrators configuring workload identity.",
+      "Maintainer-confirmed trusted external services: GitHub API and GitHub Actions, OpenAI Responses API and Codex GitHub Action.",
+      "Maintainer context: Pull-request source, metadata, comments, patches, and model-visible repository text are untrusted data.",
+      "Maintainer context: Secret-bearing analysis jobs never execute pull-request code.",
+      "Maintainer context: Verification jobs have no OpenAI credential or repository-write token.",
+      "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
+      "Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.",
+      "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
+      "Repository evidence coverage: 52/74 candidate files and 349914 bytes analyzed."
+    ],
+    "unknowns": [
+      "Analysis coverage was bounded: 52/74 candidate files (349914 bytes) were inspected; 0 exceeded the file limit and 22 exceeded the byte budget."
+    ]
+  },
+  "findings": [],
+  "runs": [
+    {
+      "id": "d055e2f0765c0bfa3ec085c5",
+      "recordedAt": "2026-07-14T14:46:09.505Z",
+      "graphHash": "0fec0ab05d719f6bed9bd9b50123c71519b501da069722a098f9899c1dfe9060",
+      "nodeCount": 19,
+      "edgeCount": 2,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": true
+    },
+    {
+      "id": "67cb947e063d0544601df69a",
+      "recordedAt": "2026-07-14T14:51:38.794Z",
+      "graphHash": "c0464087650794980548d0fb4e6f9a323f0aa84ebb8d3727c50fb1f484a74057",
+      "nodeCount": 19,
+      "edgeCount": 2,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": false
+    },
+    {
+      "id": "edc1cb0fe82c9fae4b1c401d",
+      "recordedAt": "2026-07-15T01:07:24.663Z",
+      "graphHash": "acddc5e846706e627ffaab1c3eec4a142563a61fe614f4aa612c10df458234ba",
+      "nodeCount": 19,
+      "edgeCount": 2,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": false
+    },
+    {
+      "id": "49fc1e65934b62416044511c",
+      "recordedAt": "2026-07-15T01:09:19.638Z",
+      "graphHash": "fc64288a8e45c5b2a7d1b5dc6272d853a9ad5f316f20a512536c96100989dd4a",
+      "nodeCount": 19,
+      "edgeCount": 2,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": false
+    },
+    {
+      "id": "d9fd07c1a0f2452facec54cd",
+      "recordedAt": "2026-07-15T03:16:18.473Z",
+      "graphHash": "9d3e5d608610b3cfb56f897b1e131a32f9694c7531a2e8a5f38aa983e2ef85fa",
+      "nodeCount": 19,
+      "edgeCount": 2,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": false
+    }
+  ],
+  "acceptedRisks": []
+}

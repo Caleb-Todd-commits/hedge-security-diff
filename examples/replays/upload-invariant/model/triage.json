@@ -1,0 +1,12 @@
+{
+  "result": {
+    "deepAnalysisRequired": true,
+    "reason": "A new public upload route crosses a trust boundary and requires deep analysis.",
+    "categories": ["entrypoint", "trust-boundary", "data-flow"]
+  },
+  "model": "gpt-5.6-luna-recorded",
+  "usage": {
+    "inputTokens": 500,
+    "outputTokens": 40
+  }
+}

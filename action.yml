@@ -1,0 +1,80 @@
+name: "Hedge Security Diff"
+author: "Hedge"
+description: "Shows how a pull request changes attack surface, trust boundaries, privilege, and data flow."
+
+inputs:
+  command:
+    description: "check, init, verify, or prune"
+    required: false
+    default: "check"
+  openai-api-key:
+    description: "OpenAI API key. Prefer workload identity federation for production."
+    required: false
+  github-token:
+    description: "GitHub token used to post or update the PR report."
+    required: false
+    default: "${{ github.token }}"
+  root:
+    description: "Repository root to analyze."
+    required: false
+    default: "."
+  config-path:
+    description: "Path to .hedge.yml."
+    required: false
+    default: ".hedge.yml"
+  model-triage:
+    description: "Optional trusted workflow override for the low-cost triage model."
+    required: false
+  model-analysis:
+    description: "Optional trusted workflow override for the deep security reasoning model."
+    required: false
+  risk-id:
+    description: "Existing HEDGE-NNN identifier for verify or prune commands."
+    required: false
+  verification-evidence:
+    description: "Repository-relative verification JSON path for the verify command."
+    required: false
+  architecture-control-changed:
+    description: "Optional verified architecture-control result for the verify command."
+    required: false
+  acceptance-reason:
+    description: "Documented risk-acceptance reason for the prune command."
+    required: false
+  acceptance-reason-b64:
+    description: "Base64-encoded acceptance reason. Preferred in workflows to avoid multiline output injection."
+    required: false
+  actor:
+    description: "Recorded human or automation actor for lifecycle updates."
+    required: false
+  dry-run:
+    description: "Generate output without posting comments or failing the check."
+    required: false
+    default: "false"
+
+outputs:
+  surface-changed:
+    description: "Whether an evidence-linked security architecture delta was detected."
+  open-risks:
+    description: "Number of open findings in this run."
+  highest-severity:
+    description: "Highest finding severity."
+  decision:
+    description: "Recorded merge decision: allow, warn, or block."
+  report-path:
+    description: "Path to the generated Markdown report."
+  html-report-path:
+    description: "Path to the standalone interactive HTML dashboard."
+  sarif-path:
+    description: "Path to the generated SARIF 2.1.0 report."
+  delta-path:
+    description: "Path to the machine-readable security architecture delta."
+  analysis-path:
+    description: "Path to the complete machine-readable analysis result."
+
+runs:
+  using: "node24"
+  main: "dist/action/index.cjs"
+
+branding:
+  icon: "shield"
+  color: "green"

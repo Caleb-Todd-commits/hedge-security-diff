@@ -1,0 +1,6 @@
+{
+  "framework": "express",
+  "surfaceChanged": true,
+  "minimumFindings": 1,
+  "expectedTitlesContain": ["no detected authentication"]
+}

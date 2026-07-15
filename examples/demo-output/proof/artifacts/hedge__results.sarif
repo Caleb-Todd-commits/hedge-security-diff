@@ -1,0 +1,236 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Hedge",
+          "informationUri": "https://github.com/hedge-security/hedge",
+          "semanticVersion": "0.4.0",
+          "rules": [
+            {
+              "id": "HEDGE-001",
+              "name": "newMutatingEntryPointHasNoDetectedAuthenticationControl",
+              "shortDescription": {
+                "text": "New mutating entry point has no detected authentication control"
+              },
+              "fullDescription": {
+                "text": "An unauthenticated actor may invoke a state-changing operation."
+              },
+              "help": {
+                "text": "Only authenticated and authorized principals may invoke POST /api/files/upload.",
+                "markdown": "### New mutating entry point has no detected authentication control\n\n**Security invariant:** Only authenticated and authorized principals may invoke POST /api/files/upload.\n\n**Attack path:** Public user → POST /api/files/upload → Privileged application operation\n\n**Missing controls:** Verified authentication, Authorization scoped to the target resource"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "architecture",
+                  "threat-model",
+                  "Spoofing",
+                  "Elevation of Privilege"
+                ],
+                "precision": "high",
+                "securitySeverity": "8.0",
+                "cwe": [
+                  "CWE-306"
+                ],
+                "stride": [
+                  "Spoofing",
+                  "Elevation of Privilege"
+                ],
+                "origin": "deterministic"
+              }
+            },
+            {
+              "id": "HEDGE-002",
+              "name": "newStorageWriteCrossesATrustBoundaryWithoutCompleteUploadControls",
+              "shortDescription": {
+                "text": "New storage write crosses a trust boundary without complete upload controls"
+              },
+              "fullDescription": {
+                "text": "Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage."
+              },
+              "help": {
+                "text": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
+                "markdown": "### New storage write crosses a trust boundary without complete upload controls\n\n**Security invariant:** Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\n\n**Attack path:** External user → POST /api/files/upload → Storage write\n\n**Missing controls:** Verified authentication, Payload or file size limit, Object ownership constraint"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "architecture",
+                  "threat-model",
+                  "Tampering",
+                  "Denial of Service"
+                ],
+                "precision": "high",
+                "securitySeverity": "8.0",
+                "cwe": [
+                  "CWE-434"
+                ],
+                "stride": [
+                  "Tampering",
+                  "Denial of Service"
+                ],
+                "origin": "deterministic"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "surfaceChanged": true,
+            "model": "deterministic-only",
+            "untrustedInstructionsObserved": false,
+            "limitations": [
+              "GPT-5.6 architectural interpretation was not run."
+            ]
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "HEDGE-001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "New mutating entry point has no detected authentication control. An unauthenticated actor may invoke a state-changing operation.",
+            "markdown": "**HEDGE-001 · HIGH**\n\nAn unauthenticated actor may invoke a state-changing operation.\n\nAttack path: `Public user` → `POST /api/files/upload` → `Privileged application operation`\n\nSecurity invariant: Only authenticated and authorized principals may invoke POST /api/files/upload."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/api/files/upload/route.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4,
+                  "snippet": {
+                    "text": "export async function POST(request: Request) {"
+                  }
+                }
+              }
+            }
+          ],
+          "relatedLocations": [],
+          "partialFingerprints": {
+            "hedgeFinding/v1": "00181ef4242358c6ecfa3c52"
+          },
+          "properties": {
+            "hedgeRiskId": "HEDGE-001",
+            "fingerprint": "00181ef4242358c6ecfa3c52",
+            "origin": "deterministic",
+            "status": "open",
+            "severity": "high",
+            "confidence": 0.9,
+            "asset": "Application data and privileged operations",
+            "entryPoint": "POST /api/files/upload",
+            "trustBoundary": "Public network to application",
+            "attackerCapability": "Unauthenticated network access",
+            "existingControls": [
+              "Content type allowlist"
+            ],
+            "missingControls": [
+              "Verified authentication",
+              "Authorization scoped to the target resource"
+            ],
+            "suggestedTest": {
+              "title": "Regression witness for POST /api/files/upload",
+              "framework": "vitest",
+              "language": "typescript",
+              "purpose": "Only authenticated and authorized principals may invoke POST /api/files/upload.",
+              "code": "it(\"rejects unauthenticated access to POST /api/files/upload\", async () => {\n  const response = await requestWithoutSession();\n  expect([401, 403]).toContain(response.status);\n});"
+            },
+            "remediationCommand": "@hedge fix HEDGE-001"
+          }
+        },
+        {
+          "ruleId": "HEDGE-002",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "New storage write crosses a trust boundary without complete upload controls. Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
+            "markdown": "**HEDGE-002 · HIGH**\n\nUnexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.\n\nAttack path: `External user` → `POST /api/files/upload` → `Storage write`\n\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/api/files/upload/route.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 4,
+                  "snippet": {
+                    "text": "export async function POST(request: Request) {"
+                  }
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "id": 1,
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "app/api/files/upload/route.ts",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 13,
+                  "snippet": {
+                    "text": "await client.send("
+                  }
+                }
+              },
+              "message": {
+                "text": "Additional evidence for HEDGE-002"
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "hedgeFinding/v1": "95625c5659d7e5392705225f"
+          },
+          "properties": {
+            "hedgeRiskId": "HEDGE-002",
+            "fingerprint": "95625c5659d7e5392705225f",
+            "origin": "deterministic",
+            "status": "open",
+            "severity": "high",
+            "confidence": 0.9,
+            "asset": "Object storage and downstream file processors",
+            "entryPoint": "POST /api/files/upload",
+            "trustBoundary": "public to data",
+            "attackerCapability": "Submit attacker-controlled content to the new entry point",
+            "existingControls": [
+              "Content type allowlist"
+            ],
+            "missingControls": [
+              "Verified authentication",
+              "Payload or file size limit",
+              "Object ownership constraint"
+            ],
+            "suggestedTest": {
+              "title": "Regression witness for POST /api/files/upload",
+              "framework": "vitest",
+              "language": "typescript",
+              "purpose": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
+              "code": "it(\"enforces upload boundaries for POST /api/files/upload\", async () => {\n  const response = await uploadFixture({ type: \"application/x-executable\", bytes: MAX_ALLOWED_BYTES + 1 });\n  expect([400, 413, 415]).toContain(response.status);\n});"
+            },
+            "remediationCommand": "@hedge fix HEDGE-002"
+          }
+        }
+      ]
+    }
+  ]
+}

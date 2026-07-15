@@ -1,0 +1,6 @@
+{
+  "surfaceChanged": true,
+  "minimumFindings": 2,
+  "expectedSeverities": ["high"],
+  "expectedTitlesContain": ["authentication", "storage write"]
+}

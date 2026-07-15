@@ -1,0 +1,188 @@
+name: Hedge counterfactual verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      risk_id:
+        description: Existing HEDGE-NNN risk ID
+        required: true
+        type: string
+      vulnerable_ref:
+        description: Commit/ref where the witness must demonstrate the risk
+        required: true
+        type: string
+      repaired_ref:
+        description: Commit/ref where the witness must be blocked
+        required: true
+        type: string
+      state_ref:
+        description: Branch containing the trusted threatmodel.json to update
+        required: true
+        default: main
+        type: string
+      witness_script:
+        description: Repository npm script that returns 0 when the risky behavior is reproduced
+        required: true
+        default: test:hedge-witness
+        type: string
+      legitimate_script:
+        description: Repository npm script proving intended behavior still works
+        required: true
+        default: test:hedge-legitimate
+        type: string
+      architecture_control_changed:
+        description: Confirm only after reviewing the Hedge graph delta for the repair
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate-inputs:
+    runs-on: ubuntu-latest
+    outputs:
+      risk_id: ${{ steps.validate.outputs.risk_id }}
+    steps:
+      - id: validate
+        env:
+          RISK_ID: ${{ inputs.risk_id }}
+          WITNESS: ${{ inputs.witness_script }}
+          LEGITIMATE: ${{ inputs.legitimate_script }}
+          VULNERABLE_REF: ${{ inputs.vulnerable_ref }}
+          REPAIRED_REF: ${{ inputs.repaired_ref }}
+          STATE_REF: ${{ inputs.state_ref }}
+        run: |
+          [[ "$RISK_ID" =~ ^HEDGE-[0-9]{3,}$ ]] || exit 1
+          [[ "$WITNESS" =~ ^[A-Za-z0-9:_-]+$ ]] || exit 1
+          [[ "$LEGITIMATE" =~ ^[A-Za-z0-9:_-]+$ ]] || exit 1
+          for REF in "$VULNERABLE_REF" "$REPAIRED_REF" "$STATE_REF"; do
+            [[ "$REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$ ]] || exit 1
+            [[ "$REF" != *".."* && "$REF" != *"@{"* ]] || exit 1
+          done
+          echo "risk_id=$RISK_ID" >> "$GITHUB_OUTPUT"
+
+  vulnerable-witness:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.vulnerable_ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies without lifecycle scripts
+        run: |
+          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+      - name: Risk witness must succeed on vulnerable revision
+        env:
+          SCRIPT: ${{ inputs.witness_script }}
+        run: npm run "$SCRIPT"
+
+  repaired-verification:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.repaired_ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies without lifecycle scripts
+        run: |
+          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+      - name: Risk witness must now be blocked
+        env:
+          SCRIPT: ${{ inputs.witness_script }}
+        run: |
+          if npm run "$SCRIPT"; then
+            echo "The risky witness still succeeds on the repaired revision."
+            exit 1
+          fi
+      - name: Legitimate behavior must still pass
+        env:
+          SCRIPT: ${{ inputs.legitimate_script }}
+        run: npm run "$SCRIPT"
+      - name: Create verification evidence
+        env:
+          RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+          VULNERABLE_REF: ${{ inputs.vulnerable_ref }}
+          REPAIRED_REF: ${{ inputs.repaired_ref }}
+          WITNESS: ${{ inputs.witness_script }}
+          LEGITIMATE: ${{ inputs.legitimate_script }}
+        run: |
+          mkdir -p .hedge/verification
+          node <<'NODE'
+          const fs = require('fs');
+          const path = `.hedge/verification/${process.env.RISK_ID}.json`;
+          const evidence = {
+            recordedBy: process.env.GITHUB_ACTOR,
+            vulnerableRevision: process.env.VULNERABLE_REF,
+            repairedRevision: process.env.REPAIRED_REF,
+            vulnerableRevisionWitnessSucceeded: true,
+            repairedRevisionWitnessBlocked: true,
+            legitimateBehaviorPassed: true,
+            architectureControlChanged: false,
+            commands: [`npm run ${process.env.WITNESS}`, `npm run ${process.env.LEGITIMATE}`],
+            notes: ['Architecture-control confirmation is recorded separately from executable behavior.'],
+            artifacts: []
+          };
+          fs.writeFileSync(path, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}
+          path: .hedge/verification/*.json
+          retention-days: 30
+
+  record-state:
+    needs: [validate-inputs, vulnerable-witness, repaired-verification]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.state_ref }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}
+          path: .hedge/verification
+      - name: Record lifecycle evidence in trusted state
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: verify
+          risk-id: ${{ needs.validate-inputs.outputs.risk_id }}
+          verification-evidence: .hedge/verification/${{ needs.validate-inputs.outputs.risk_id }}.json
+          architecture-control-changed: ${{ inputs.architecture_control_changed }}
+          actor: ${{ github.actor }}
+      - name: Open reviewable verification-state PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+        run: |
+          if git diff --quiet -- threatmodel.json THREATMODEL.md; then
+            echo "No state change was produced."
+            exit 0
+          fi
+          BRANCH="hedge/verify-${RISK_ID,,}-${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH"
+          git config user.name "hedge-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threatmodel.json THREATMODEL.md
+          git commit -m "chore: record verification for ${RISK_ID}"
+          git push origin "$BRANCH"
+          gh pr create --base "${{ inputs.state_ref }}" --head "$BRANCH" --title "Hedge: record verification for ${RISK_ID}" --body "Records executable counterfactual evidence. The risk is verified only when the witness is blocked, legitimate behavior passes, and the architecture-control change is confirmed."

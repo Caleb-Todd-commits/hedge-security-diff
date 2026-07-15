@@ -1,0 +1,24 @@
+sensitive_assets:
+  - OpenAI credentials or short-lived workload identities
+  - GitHub tokens and repository write authority
+  - Integrity of threatmodel.json, finding history, and verification evidence
+  - Maintainer approval boundary for Codex remediation
+internet_facing:
+  - Pull-request event and diff evidence received through the GitHub API
+  - issue_comment commands such as @hedge fix
+  - Published GitHub Action inputs
+  - OpenAI Responses API requests from the trusted analysis job
+authentication:
+  - GitHub repository permissions identify maintainers and workflow actors
+  - OpenAI authentication uses a repository secret in the hackathon example; workload identity is preferred for production
+privileged_roles:
+  - Repository maintainers with write permission
+  - GitHub Actions bot in trusted publisher jobs
+  - OpenAI organization administrators configuring workload identity
+trusted_external_services:
+  - GitHub API and GitHub Actions
+  - OpenAI Responses API and Codex GitHub Action
+notes:
+  - Pull-request source, metadata, comments, patches, and model-visible repository text are untrusted data.
+  - Secret-bearing analysis jobs never execute pull-request code.
+  - Verification jobs have no OpenAI credential or repository-write token.

@@ -1,0 +1,5 @@
+framework: nextjs
+fail_on: high
+ignored_paths:
+  - .next/**
+  - coverage/**

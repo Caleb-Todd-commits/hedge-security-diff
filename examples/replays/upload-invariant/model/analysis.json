@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "summary": "Recorded GPT-5.6 analysis confirms that the new upload surface requires explicit controls; deterministic invariant findings remain authoritative.",
+  "limitations": ["This replay uses a recorded model response and does not call the live API."],
+  "model": "gpt-5.6-sol-recorded",
+  "integrity": {
+    "untrustedInstructionsObserved": false,
+    "analysisBoundaryHeld": true,
+    "notes": ["Recorded model boundary result used for deterministic end-to-end replay."]
+  },
+  "usage": {
+    "inputTokens": 1200,
+    "outputTokens": 120
+  }
+}

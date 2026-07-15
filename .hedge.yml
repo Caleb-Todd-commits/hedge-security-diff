@@ -1,0 +1,14 @@
+framework: nextjs
+fail_on: high
+ignored_paths:
+  - docs/**
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - eval/**
+  - examples/**
+models:
+  triage: gpt-5.6-luna
+  analysis: gpt-5.6-sol
+limits:
+  max_files: 120
+  max_bytes: 350000

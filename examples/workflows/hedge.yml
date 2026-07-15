@@ -1,0 +1,51 @@
+name: Hedge security diff
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  hedge:
+    # Build Week scope: same-repository pull requests only.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Pin the published action to an immutable commit. Hedge reads policy,
+      # context, and baseline state from the trusted base SHA through the API.
+      - id: hedge
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          github-token: ${{ github.token }}
+
+      - name: Upload Hedge dashboard and machine reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hedge-security-diff-${{ github.event.pull_request.number }}
+          path: |
+            ${{ steps.hedge.outputs.report-path }}
+            ${{ steps.hedge.outputs.html-report-path }}
+            ${{ steps.hedge.outputs.sarif-path }}
+            ${{ steps.hedge.outputs.delta-path }}
+            ${{ steps.hedge.outputs.analysis-path }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish SARIF to GitHub code scanning
+        if: always() && hashFiles('.hedge/results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: .hedge/results.sarif
+          category: hedge-security-diff

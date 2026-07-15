@@ -1,0 +1,8 @@
+diff --git a/src/format-date.ts b/src/format-date.ts
+new file mode 100644
+--- /dev/null
++++ b/src/format-date.ts
+@@
++export function formatDate(value: Date): string {
++  return new Intl.DateTimeFormat("en-US").format(value);
++}

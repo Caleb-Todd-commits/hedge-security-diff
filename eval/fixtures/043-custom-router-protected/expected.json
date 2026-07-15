@@ -1,0 +1,6 @@
+{
+  "framework": "express",
+  "surfaceChanged": true,
+  "maximumFindings": 0,
+  "forbiddenTitlesContain": ["no detected authentication", "without complete access controls"]
+}

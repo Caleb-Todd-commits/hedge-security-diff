@@ -1,0 +1,665 @@
+{
+  "schemaVersion": "0.1",
+  "generatedAt": "2026-07-15T01:09:45.028Z",
+  "stateIntegrity": {
+    "graphHash": "e02083e24d74a273865d3c45c760d75e6c84a8dda1e7d607160b4c4ba471463e",
+    "registerHash": "dc3486dcacbb192de7ef93ca27f994519d340317b7296c4b3239abfbc08bab9a",
+    "algorithm": "sha256-stable-json-v2",
+    "configHash": "ba700d1177aab311d036264c01bbdb81487e55eb5a67280a038d92b7b064618d",
+    "contextHash": "3e2be10dbf6afa4e43175d5d86c8a46e704aded921f0e2b3705e731e32bbeaf4",
+    "toolVersion": "0.4.0"
+  },
+  "nextRiskNumber": 3,
+  "graph": {
+    "schemaVersion": "0.1",
+    "generatedAt": "2026-07-15T01:09:45.011Z",
+    "repository": "local",
+    "framework": "nextjs",
+    "nodes": [
+      {
+        "id": "auth-control:7bf2b37d213596d1",
+        "kind": "auth-control",
+        "label": "Authentication check: auth",
+        "trustZone": "application",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 2,
+            "snippet": "const session = await auth();",
+            "extractor": "typescript-ast-control"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "file": "app/api/notes/route.ts",
+          "controlType": "authentication"
+        }
+      },
+      {
+        "id": "authorization-control:f2e1d5e80a7ef898",
+        "kind": "authorization-control",
+        "label": "Resource ownership constraint",
+        "trustZone": "application",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 4,
+            "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+            "extractor": "typescript-ast-control"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "file": "app/api/notes/route.ts",
+          "controlType": "ownership"
+        }
+      },
+      {
+        "id": "data-model:Note",
+        "kind": "data-model",
+        "label": "Note",
+        "trustZone": "data",
+        "evidence": [
+          {
+            "file": "prisma/schema.prisma",
+            "line": 6,
+            "snippet": "model Note {",
+            "extractor": "prisma-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "model": "Note",
+          "fields": [
+            "id",
+            "ownerId",
+            "owner",
+            "title",
+            "body"
+          ],
+          "sensitiveFields": [],
+          "sensitive": false
+        }
+      },
+      {
+        "id": "data-model:User",
+        "kind": "data-model",
+        "label": "User",
+        "trustZone": "data",
+        "evidence": [
+          {
+            "file": "prisma/schema.prisma",
+            "line": 1,
+            "snippet": "model User {",
+            "extractor": "prisma-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "model": "User",
+          "fields": [
+            "id",
+            "notes"
+          ],
+          "sensitiveFields": [],
+          "sensitive": true
+        }
+      },
+      {
+        "id": "database:754eec4f7490bdab",
+        "kind": "database",
+        "label": "Database read: note.findMany",
+        "trustZone": "data",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 4,
+            "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+            "extractor": "typescript-ast-operation"
+          }
+        ],
+        "controls": [
+          {
+            "type": "authentication",
+            "label": "Authentication check: auth",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 2,
+                "snippet": "const session = await auth();",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.93
+          },
+          {
+            "type": "ownership",
+            "label": "Resource ownership constraint",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 4,
+                "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.81
+          }
+        ],
+        "metadata": {
+          "file": "app/api/notes/route.ts",
+          "model": "note",
+          "operation": "findMany",
+          "userControlled": false
+        }
+      },
+      {
+        "id": "dependency:@aws-sdk/client-s3",
+        "kind": "dependency",
+        "label": "@aws-sdk/client-s3@^3.0.0",
+        "trustZone": "external",
+        "evidence": [
+          {
+            "file": "package.json",
+            "extractor": "package-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "@aws-sdk/client-s3",
+          "version": "^3.0.0"
+        }
+      },
+      {
+        "id": "dependency:next",
+        "kind": "dependency",
+        "label": "next@16.0.0",
+        "trustZone": "external",
+        "evidence": [
+          {
+            "file": "package.json",
+            "extractor": "package-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "next",
+          "version": "16.0.0"
+        }
+      },
+      {
+        "id": "dependency:prisma",
+        "kind": "dependency",
+        "label": "prisma@^6.0.0",
+        "trustZone": "external",
+        "evidence": [
+          {
+            "file": "package.json",
+            "extractor": "package-extractor"
+          }
+        ],
+        "controls": [],
+        "metadata": {
+          "name": "prisma",
+          "version": "^6.0.0"
+        }
+      },
+      {
+        "id": "entrypoint:7687698fbe395d3f",
+        "kind": "entrypoint",
+        "label": "GET /api/notes",
+        "trustZone": "public",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 1,
+            "snippet": "export async function GET() {",
+            "extractor": "nextjs-ast-route"
+          }
+        ],
+        "controls": [
+          {
+            "type": "authentication",
+            "label": "Authentication check: auth",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 2,
+                "snippet": "const session = await auth();",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.93
+          },
+          {
+            "type": "ownership",
+            "label": "Resource ownership constraint",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 4,
+                "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.81
+          }
+        ],
+        "metadata": {
+          "method": "GET",
+          "path": "/api/notes",
+          "file": "app/api/notes/route.ts",
+          "framework": "nextjs",
+          "handler": "GET",
+          "extractor": "typescript-ast"
+        }
+      },
+      {
+        "id": "entrypoint:7821443e29938cb4",
+        "kind": "entrypoint",
+        "label": "POST /api/files/upload",
+        "trustZone": "public",
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 4,
+            "snippet": "export async function POST(request: Request) {",
+            "extractor": "nextjs-ast-route"
+          }
+        ],
+        "controls": [
+          {
+            "type": "content-type",
+            "label": "Content type allowlist",
+            "evidence": [
+              {
+                "file": "app/api/files/upload/route.ts",
+                "line": 7,
+                "snippet": "const decision = evaluateUpload({",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.88
+          }
+        ],
+        "metadata": {
+          "method": "POST",
+          "path": "/api/files/upload",
+          "file": "app/api/files/upload/route.ts",
+          "framework": "nextjs",
+          "handler": "POST",
+          "extractor": "typescript-ast"
+        }
+      },
+      {
+        "id": "storage:ac193b90989396d6",
+        "kind": "storage",
+        "label": "Storage write",
+        "trustZone": "data",
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 13,
+            "snippet": "await client.send(",
+            "extractor": "typescript-ast-operation"
+          }
+        ],
+        "controls": [
+          {
+            "type": "content-type",
+            "label": "Content type allowlist",
+            "evidence": [
+              {
+                "file": "app/api/files/upload/route.ts",
+                "line": 7,
+                "snippet": "const decision = evaluateUpload({",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.88
+          }
+        ],
+        "metadata": {
+          "file": "app/api/files/upload/route.ts",
+          "callee": "client.send",
+          "userControlled": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge:39aed8b5cfeb2596",
+        "from": "entrypoint:7821443e29938cb4",
+        "to": "storage:ac193b90989396d6",
+        "kind": "writes",
+        "label": "Storage write",
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 13,
+            "snippet": "await client.send(",
+            "extractor": "typescript-ast-operation"
+          }
+        ],
+        "controls": [
+          {
+            "type": "content-type",
+            "label": "Content type allowlist",
+            "evidence": [
+              {
+                "file": "app/api/files/upload/route.ts",
+                "line": 7,
+                "snippet": "const decision = evaluateUpload({",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.88
+          }
+        ],
+        "confidence": 0.94
+      },
+      {
+        "id": "edge:3af551256deab10a",
+        "from": "entrypoint:7687698fbe395d3f",
+        "to": "authorization-control:f2e1d5e80a7ef898",
+        "kind": "authorizes",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 4,
+            "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+            "extractor": "typescript-ast-control"
+          }
+        ],
+        "controls": [
+          {
+            "type": "ownership",
+            "label": "Resource ownership constraint",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 4,
+                "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.81
+          }
+        ],
+        "confidence": 0.81
+      },
+      {
+        "id": "edge:8ffdc332815a44a2",
+        "from": "entrypoint:7687698fbe395d3f",
+        "to": "database:754eec4f7490bdab",
+        "kind": "reads",
+        "label": "Database read: note.findMany",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 4,
+            "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+            "extractor": "typescript-ast-operation"
+          }
+        ],
+        "controls": [
+          {
+            "type": "authentication",
+            "label": "Authentication check: auth",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 2,
+                "snippet": "const session = await auth();",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.93
+          },
+          {
+            "type": "ownership",
+            "label": "Resource ownership constraint",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 4,
+                "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.81
+          }
+        ],
+        "confidence": 0.94
+      },
+      {
+        "id": "edge:d525216bd1bb2930",
+        "from": "database:754eec4f7490bdab",
+        "to": "data-model:Note",
+        "kind": "reads",
+        "label": "Database read: note.findMany",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 4,
+            "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+            "extractor": "typescript-ast-operation"
+          }
+        ],
+        "controls": [
+          {
+            "type": "authentication",
+            "label": "Authentication check: auth",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 2,
+                "snippet": "const session = await auth();",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.93
+          },
+          {
+            "type": "ownership",
+            "label": "Resource ownership constraint",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 4,
+                "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.81
+          }
+        ],
+        "confidence": 0.95
+      },
+      {
+        "id": "edge:ffc769fcaeac42ef",
+        "from": "entrypoint:7687698fbe395d3f",
+        "to": "auth-control:7bf2b37d213596d1",
+        "kind": "authenticates",
+        "evidence": [
+          {
+            "file": "app/api/notes/route.ts",
+            "line": 2,
+            "snippet": "const session = await auth();",
+            "extractor": "typescript-ast-control"
+          }
+        ],
+        "controls": [
+          {
+            "type": "authentication",
+            "label": "Authentication check: auth",
+            "evidence": [
+              {
+                "file": "app/api/notes/route.ts",
+                "line": 2,
+                "snippet": "const session = await auth();",
+                "extractor": "typescript-ast-control"
+              }
+            ],
+            "confidence": 0.93
+          }
+        ],
+        "confidence": 0.93
+      }
+    ],
+    "assumptions": [
+      "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
+      "Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.",
+      "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
+      "Repository evidence coverage: 11/11 candidate files and 29910 bytes analyzed."
+    ],
+    "unknowns": [
+      "Sensitive assets were not confirmed in .hedge/context.yml.",
+      "Internet-facing deployment surfaces were not confirmed in .hedge/context.yml.",
+      "Authentication mechanisms were inferred from code and not confirmed in .hedge/context.yml.",
+      "Privileged roles were not confirmed in .hedge/context.yml.",
+      "Trusted external services were not confirmed in .hedge/context.yml."
+    ]
+  },
+  "findings": [
+    {
+      "id": "HEDGE-001",
+      "fingerprint": "00181ef4242358c6ecfa3c52",
+      "title": "New mutating entry point has no detected authentication control",
+      "severity": "high",
+      "origin": "deterministic",
+      "status": "open",
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "cwe": [
+        "CWE-306"
+      ],
+      "asset": "Application data and privileged operations",
+      "attackerCapability": "Unauthenticated network access",
+      "entryPoint": "POST /api/files/upload",
+      "trustBoundary": "Public network to application",
+      "precondition": "The route is deployed and reachable without an upstream authentication control.",
+      "attackPath": [
+        "Public user",
+        "POST /api/files/upload",
+        "Privileged application operation"
+      ],
+      "potentialImpact": "An unauthenticated actor may invoke a state-changing operation.",
+      "existingControls": [
+        "Content type allowlist"
+      ],
+      "missingControls": [
+        "Verified authentication",
+        "Authorization scoped to the target resource"
+      ],
+      "securityInvariant": "Only authenticated and authorized principals may invoke POST /api/files/upload.",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 4,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route"
+        }
+      ],
+      "confidence": 0.9,
+      "suggestedTest": {
+        "title": "Regression witness for POST /api/files/upload",
+        "framework": "vitest",
+        "language": "typescript",
+        "code": "it(\"rejects unauthenticated access to POST /api/files/upload\", async () => {\n  const response = await requestWithoutSession();\n  expect([401, 403]).toContain(response.status);\n});",
+        "purpose": "Only authenticated and authorized principals may invoke POST /api/files/upload."
+      },
+      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New mutating entry point has no detected authentication control.\nSecurity invariant: Only authenticated and authorized principals may invoke POST /api/files/upload.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Authorization scoped to the target resource.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+      "verificationHistory": [],
+      "createdAt": "2026-07-15T01:09:45.013Z",
+      "updatedAt": "2026-07-15T01:09:45.013Z"
+    },
+    {
+      "id": "HEDGE-002",
+      "fingerprint": "95625c5659d7e5392705225f",
+      "title": "New storage write crosses a trust boundary without complete upload controls",
+      "severity": "high",
+      "origin": "deterministic",
+      "status": "open",
+      "stride": [
+        "Tampering",
+        "Denial of Service"
+      ],
+      "cwe": [
+        "CWE-434"
+      ],
+      "asset": "Object storage and downstream file processors",
+      "attackerCapability": "Submit attacker-controlled content to the new entry point",
+      "entryPoint": "POST /api/files/upload",
+      "trustBoundary": "public to data",
+      "precondition": "User-controlled content reaches the storage operation.",
+      "attackPath": [
+        "External user",
+        "POST /api/files/upload",
+        "Storage write"
+      ],
+      "potentialImpact": "Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
+      "existingControls": [
+        "Content type allowlist"
+      ],
+      "missingControls": [
+        "Verified authentication",
+        "Payload or file size limit",
+        "Object ownership constraint"
+      ],
+      "securityInvariant": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 4,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route"
+        },
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 13,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "confidence": 0.9,
+      "suggestedTest": {
+        "title": "Regression witness for POST /api/files/upload",
+        "framework": "vitest",
+        "language": "typescript",
+        "code": "it(\"enforces upload boundaries for POST /api/files/upload\", async () => {\n  const response = await uploadFixture({ type: \"application/x-executable\", bytes: MAX_ALLOWED_BYTES + 1 });\n  expect([400, 413, 415]).toContain(response.status);\n});",
+        "purpose": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage."
+      },
+      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+      "verificationHistory": [],
+      "createdAt": "2026-07-15T01:09:45.014Z",
+      "updatedAt": "2026-07-15T01:09:45.014Z"
+    }
+  ],
+  "runs": [
+    {
+      "id": "9767f83652e9393fcb73c125",
+      "recordedAt": "2026-07-15T01:09:44.362Z",
+      "graphHash": "1467654cc19a387ae849a3b7cdb9d6c48f5d0ceaca969e359764b4e2c68f32e4",
+      "nodeCount": 9,
+      "edgeCount": 4,
+      "openRiskCount": 0,
+      "highestSeverity": "info",
+      "architectureChanged": true
+    },
+    {
+      "id": "c4efaab8bd453eea8703f86b",
+      "recordedAt": "2026-07-15T01:09:45.024Z",
+      "graphHash": "e02083e24d74a273865d3c45c760d75e6c84a8dda1e7d607160b4c4ba471463e",
+      "nodeCount": 11,
+      "edgeCount": 5,
+      "openRiskCount": 2,
+      "highestSeverity": "high",
+      "architectureChanged": true,
+      "model": "deterministic-only"
+    }
+  ],
+  "acceptedRisks": []
+}

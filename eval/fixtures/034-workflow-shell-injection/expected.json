@@ -1,0 +1,7 @@
+{
+  "framework": "auto",
+  "surfaceChanged": true,
+  "minimumFindings": 2,
+  "expectedSeverities": ["critical"],
+  "expectedTitlesContain": ["interpolated into a privileged shell step", "write permissions"]
+}

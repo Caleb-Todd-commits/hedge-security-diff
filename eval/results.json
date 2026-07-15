@@ -1,0 +1,813 @@
+{
+  "total": 45,
+  "passed": 45,
+  "failed": 0,
+  "benignSilenceRate": 1,
+  "surfaceChangeRecall": 1,
+  "expectedFindingRecall": 1,
+  "countWithinExpectedRangeRate": 1,
+  "deterministicStabilityRate": 1,
+  "cases": [
+    {
+      "name": "001-benign-refactor",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": false,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": false,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "002-upload-endpoint",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 2,
+        "expectedSeverities": ["high"],
+        "expectedTitlesContain": ["authentication", "storage write"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["high", "high"],
+        "titles": [
+          "New mutating entry point has no detected authentication control",
+          "New storage write crosses a trust boundary without complete upload controls"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "003-admin-weak-auth",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["high"],
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["high", "high"],
+        "titles": [
+          "New mutating entry point has no detected authentication control",
+          "New administrative entry point has no detected role or permission check"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "004-upload-mitigation",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "005-prompt-injection-data",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": false,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": false,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "006-public-secret-boundary",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["medium"],
+        "expectedTitlesContain": ["privileged secret"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["medium"],
+        "titles": ["Public entry point newly depends on a privileged secret"]
+      },
+      "errors": []
+    },
+    {
+      "name": "007-webhook-outbound",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["high"],
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["high", "medium"],
+        "titles": [
+          "New mutating entry point has no detected authentication control",
+          "New outbound request uses a dynamic destination without a detected allowlist"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "008-removed-auth",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["critical"],
+        "expectedTitlesContain": ["control removed", "authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["critical"],
+        "titles": ["Security control removed from existing entry point: authentication"]
+      },
+      "errors": []
+    },
+    {
+      "name": "009-protected-db-write",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "010-dynamic-ssrf",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["dynamic destination"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["medium"],
+        "titles": ["New outbound request uses a dynamic destination without a detected allowlist"]
+      },
+      "errors": []
+    },
+    {
+      "name": "011-static-outbound",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["dynamic destination"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "012-command-execution",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["command execution"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["Public entry point newly reaches privileged code or command execution"]
+      },
+      "errors": []
+    },
+    {
+      "name": "013-pull-request-target-secret",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["critical"],
+        "expectedTitlesContain": ["pull_request_target"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["critical", "medium"],
+        "titles": [
+          "pull_request_target workflow newly combines untrusted PR context with secrets",
+          "Public entry point newly depends on a privileged secret"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "014-workflow-dispatch-secret",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["privileged secret", "pull_request_target"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "015-secret-logging",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 2,
+        "expectedTitlesContain": ["privileged secret", "logging path"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["medium", "medium"],
+        "titles": [
+          "New logging path exists in a request flow that consumes a privileged secret",
+          "Public entry point newly depends on a privileged secret"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "016-nonsecret-env-config",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["privileged secret"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "017-dynamic-read-protected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "018-catchall-mutation",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "019-express-inline-unprotected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "020-express-resolved-protected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "021-security-dependency-change",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "022-removed-upload-validation",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["control removed"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["Security control removed from existing entry point: content-type, size-limit"]
+      },
+      "errors": []
+    },
+    {
+      "name": "023-authenticated-storage-delete",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["upload controls"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "024-export-alias-route",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "025-comment-only-benign",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": false,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": false,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "026-issue-comment-secret",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["privileged secret"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["medium"],
+        "titles": ["Public entry point newly depends on a privileged secret"]
+      },
+      "errors": []
+    },
+    {
+      "name": "027-removed-ownership",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["control removed", "ownership"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["Security control removed from existing entry point: ownership"]
+      },
+      "errors": []
+    },
+    {
+      "name": "028-protected-admin-route",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "029-safe-new-upload",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "030-route-handler-scope",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "031-sensitive-prisma-read",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["high"],
+        "expectedTitlesContain": ["sensitive data model"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["Public route reads a sensitive data model without complete access controls"]
+      },
+      "errors": []
+    },
+    {
+      "name": "032-protected-sensitive-read",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["sensitive data model"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "033-workflow-permission-expansion",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["expands repository write permissions"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["Existing workflow expands repository write permissions"]
+      },
+      "errors": []
+    },
+    {
+      "name": "034-workflow-shell-injection",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "minimumFindings": 2,
+        "expectedSeverities": ["critical"],
+        "expectedTitlesContain": ["interpolated into a privileged shell step", "write permissions"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["high", "critical"],
+        "titles": [
+          "Publicly triggerable workflow adds repository write permissions",
+          "Untrusted GitHub event text is interpolated into a privileged shell step"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "035-workflow-pr-head-checkout",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "auto",
+        "surfaceChanged": true,
+        "minimumFindings": 2,
+        "expectedSeverities": ["critical"],
+        "expectedTitlesContain": ["checks out untrusted pull request code", "write permissions"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 2,
+        "severities": ["high", "critical"],
+        "titles": [
+          "Publicly triggerable workflow adds repository write permissions",
+          "Privileged workflow checks out untrusted pull request code"
+        ]
+      },
+      "errors": []
+    },
+    {
+      "name": "036-fixed-host-dynamic-query",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["dynamic destination"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "037-next-auth-wrapper",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["no detected authentication", "without complete access controls"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "038-express-middleware-chain",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["no detected authentication", "no detected role"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "039-next-middleware-auth",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["no detected authentication", "without complete access controls"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "040-server-action-unprotected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["no detected authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "041-express-order-unprotected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["no detected authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "042-express-path-scope",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["no detected authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "043-custom-router-protected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "framework": "express",
+        "surfaceChanged": true,
+        "maximumFindings": 0,
+        "forbiddenTitlesContain": ["no detected authentication", "without complete access controls"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
+      },
+      "errors": []
+    },
+    {
+      "name": "044-complex-matcher-unknown",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedTitlesContain": ["no detected authentication"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New mutating entry point has no detected authentication control"]
+      },
+      "errors": []
+    },
+    {
+      "name": "045-same-line-dangerous-operations",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 3,
+        "expectedTitlesContain": ["dynamic destination", "request-influenced data"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 3,
+        "severities": ["high", "medium", "critical"],
+        "titles": [
+          "New mutating entry point has no detected authentication control",
+          "New outbound request uses a dynamic destination without a detected allowlist",
+          "Public entry point passes request-influenced data to privileged code or command execution"
+        ]
+      },
+      "errors": []
+    }
+  ]
+}

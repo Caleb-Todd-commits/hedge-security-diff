@@ -1,0 +1,17 @@
+diff --git a/app/api/files/upload/route.ts b/app/api/files/upload/route.ts
+new file mode 100644
+--- /dev/null
++++ b/app/api/files/upload/route.ts
+@@
++import { PutObjectCommand } from "@aws-sdk/client-s3";
++
++export async function POST(request: Request) {
++  const form = await request.formData();
++  const file = form.get("file");
++  await client.send(new PutObjectCommand({
++    Bucket: process.env.UPLOAD_BUCKET,
++    Key: crypto.randomUUID(),
++    Body: file
++  }));
++  return Response.json({ ok: true });
++}

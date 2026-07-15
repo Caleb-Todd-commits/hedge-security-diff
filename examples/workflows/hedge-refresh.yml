@@ -1,0 +1,50 @@
+name: Refresh Hedge model
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    # Avoid recursively opening a new state PR for the state-update commit itself.
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      # Pin the published Hedge action to an immutable commit in production.
+      - name: Rebuild the evidence-linked model
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: init
+          github-token: ${{ github.token }}
+          dry-run: true
+
+      - name: Open a reviewable state-update pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- THREATMODEL.md threatmodel.json .hedge/graph.json; then
+            echo "Hedge state is current."
+            exit 0
+          fi
+          BRANCH="hedge/model-${GITHUB_SHA::8}-${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH"
+          git config user.name "hedge-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add THREATMODEL.md threatmodel.json .hedge/graph.json
+          git commit -m "chore: refresh Hedge security model"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base "${GITHUB_REF_NAME}" \
+            --head "$BRANCH" \
+            --title "Hedge: refresh security architecture model" \
+            --body "Generated after merge at ${GITHUB_SHA}. Review the evidence-linked graph and risk-register changes before merging."

@@ -1,0 +1,132 @@
+{
+  "summary": "Hedge surfaced 2 evidence-linked risk(s) using deterministic analysis. Model reasoning was skipped because no API key was supplied.",
+  "surfaceChanged": true,
+  "findings": [
+    {
+      "id": "HEDGE-001",
+      "fingerprint": "00181ef4242358c6ecfa3c52",
+      "title": "New mutating entry point has no detected authentication control",
+      "severity": "high",
+      "origin": "deterministic",
+      "status": "open",
+      "stride": [
+        "Spoofing",
+        "Elevation of Privilege"
+      ],
+      "cwe": [
+        "CWE-306"
+      ],
+      "asset": "Application data and privileged operations",
+      "attackerCapability": "Unauthenticated network access",
+      "entryPoint": "POST /api/files/upload",
+      "trustBoundary": "Public network to application",
+      "precondition": "The route is deployed and reachable without an upstream authentication control.",
+      "attackPath": [
+        "Public user",
+        "POST /api/files/upload",
+        "Privileged application operation"
+      ],
+      "potentialImpact": "An unauthenticated actor may invoke a state-changing operation.",
+      "existingControls": [
+        "Content type allowlist"
+      ],
+      "missingControls": [
+        "Verified authentication",
+        "Authorization scoped to the target resource"
+      ],
+      "securityInvariant": "Only authenticated and authorized principals may invoke POST /api/files/upload.",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 4,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route"
+        }
+      ],
+      "confidence": 0.9,
+      "suggestedTest": {
+        "title": "Regression witness for POST /api/files/upload",
+        "framework": "vitest",
+        "language": "typescript",
+        "purpose": "Only authenticated and authorized principals may invoke POST /api/files/upload.",
+        "code": "it(\"rejects unauthenticated access to POST /api/files/upload\", async () => {\n  const response = await requestWithoutSession();\n  expect([401, 403]).toContain(response.status);\n});"
+      },
+      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New mutating entry point has no detected authentication control.\nSecurity invariant: Only authenticated and authorized principals may invoke POST /api/files/upload.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Authorization scoped to the target resource.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+      "verificationHistory": [],
+      "createdAt": "2026-07-15T01:09:45.013Z",
+      "updatedAt": "2026-07-15T01:09:45.013Z"
+    },
+    {
+      "id": "HEDGE-002",
+      "fingerprint": "95625c5659d7e5392705225f",
+      "title": "New storage write crosses a trust boundary without complete upload controls",
+      "severity": "high",
+      "origin": "deterministic",
+      "status": "open",
+      "stride": [
+        "Tampering",
+        "Denial of Service"
+      ],
+      "cwe": [
+        "CWE-434"
+      ],
+      "asset": "Object storage and downstream file processors",
+      "attackerCapability": "Submit attacker-controlled content to the new entry point",
+      "entryPoint": "POST /api/files/upload",
+      "trustBoundary": "public to data",
+      "precondition": "User-controlled content reaches the storage operation.",
+      "attackPath": [
+        "External user",
+        "POST /api/files/upload",
+        "Storage write"
+      ],
+      "potentialImpact": "Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
+      "existingControls": [
+        "Content type allowlist"
+      ],
+      "missingControls": [
+        "Verified authentication",
+        "Payload or file size limit",
+        "Object ownership constraint"
+      ],
+      "securityInvariant": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 4,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route"
+        },
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 13,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation"
+        }
+      ],
+      "confidence": 0.9,
+      "suggestedTest": {
+        "title": "Regression witness for POST /api/files/upload",
+        "framework": "vitest",
+        "language": "typescript",
+        "purpose": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
+        "code": "it(\"enforces upload boundaries for POST /api/files/upload\", async () => {\n  const response = await uploadFixture({ type: \"application/x-executable\", bytes: MAX_ALLOWED_BYTES + 1 });\n  expect([400, 413, 415]).toContain(response.status);\n});"
+      },
+      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+      "verificationHistory": [],
+      "createdAt": "2026-07-15T01:09:45.014Z",
+      "updatedAt": "2026-07-15T01:09:45.014Z"
+    }
+  ],
+  "integrity": {
+    "untrustedInstructionsObserved": false,
+    "analysisBoundaryHeld": true,
+    "notes": [
+      "Offline analysis mode: repository content was parsed as data and no model call was made."
+    ]
+  },
+  "limitations": [
+    "GPT-5.6 architectural interpretation was not run."
+  ],
+  "model": "deterministic-only"
+}

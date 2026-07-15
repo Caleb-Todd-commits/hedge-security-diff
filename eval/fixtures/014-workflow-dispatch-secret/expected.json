@@ -1,0 +1,6 @@
+{
+  "framework": "auto",
+  "surfaceChanged": true,
+  "maximumFindings": 0,
+  "forbiddenTitlesContain": ["privileged secret", "pull_request_target"]
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+package-lock.json
+examples/demo-notes/.next
+
+# Generated evidence artifacts are preserved byte-for-byte so proof manifests remain valid.
+examples/demo-output/

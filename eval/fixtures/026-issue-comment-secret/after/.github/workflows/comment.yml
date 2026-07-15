@@ -1,0 +1,8 @@
+name: Comment bot
+on:
+  issue_comment:
+jobs:
+  respond:
+    runs-on: ubuntu-latest
+    steps:
+      - run: tool --token "${{ secrets.BOT_TOKEN }}"

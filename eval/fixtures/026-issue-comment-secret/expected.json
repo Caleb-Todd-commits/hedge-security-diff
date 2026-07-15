@@ -1,0 +1,6 @@
+{
+  "framework": "auto",
+  "surfaceChanged": true,
+  "minimumFindings": 1,
+  "expectedTitlesContain": ["privileged secret"]
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "0.1",
+  "generatedAt": "2026-07-15T01:09:46.095Z",
+  "repository": "hedge-demo-notes",
+  "baseRef": "main",
+  "headRef": "demo/01-file-upload-risk",
+  "state": {
+    "graphHash": "e02083e24d74a273865d3c45c760d75e6c84a8dda1e7d607160b4c4ba471463e",
+    "registerHash": "dc3486dcacbb192de7ef93ca27f994519d340317b7296c4b3239abfbc08bab9a",
+    "configHash": "5aeaed89b31c14dafcb7f74a1c2c7cac01621e07030296261c8cf00b7f2b4d8a"
+  },
+  "riskSummary": {
+    "total": 2,
+    "open": 2,
+    "verified": 0,
+    "accepted": 0,
+    "highestOpenSeverity": "high"
+  },
+  "files": [
+    {
+      "source": ".hedge/report.md",
+      "bundledAs": "artifacts/hedge__report.md",
+      "sha256": "976a48c77afad27b3ea1b7af25b88129a3606c6674bda5ee50647143e80828bf",
+      "bytes": 8240
+    },
+    {
+      "source": ".hedge/report.html",
+      "bundledAs": "artifacts/hedge__report.html",
+      "sha256": "27aa9b2fd1cc210abaa6241615b078f67f876886ae78ebd8ef59f1f3ccc235a6",
+      "bytes": 47897
+    },
+    {
+      "source": ".hedge/results.sarif",
+      "bundledAs": "artifacts/hedge__results.sarif",
+      "sha256": "0dc2087eff54bea500ce4a92a42504c978b7049a5cbb778101374ce56ba12425",
+      "bytes": 9974
+    },
+    {
+      "source": ".hedge/delta.json",
+      "bundledAs": "artifacts/hedge__delta.json",
+      "sha256": "d5d2a09ce8750e0e422b214fbdfd4b740d3a81fbcb710f2c4d9035c2699c9f8a",
+      "bytes": 2931
+    },
+    {
+      "source": ".hedge/analysis.json",
+      "bundledAs": "artifacts/hedge__analysis.json",
+      "sha256": "1de7c0c1286b819a10a5811392c2d614a19b776f0c97efe33dd417a51930a3e4",
+      "bytes": 6225
+    },
+    {
+      "source": ".hedge/graph.json",
+      "bundledAs": "artifacts/hedge__graph.json",
+      "sha256": "8667e7e76b7a36ac9335fe3f98fa6e87b7a95b30d6618dbad00a88cef4f65bb9",
+      "bytes": 11749
+    },
+    {
+      "source": "THREATMODEL.md",
+      "bundledAs": "artifacts/THREATMODEL.md",
+      "sha256": "cdff1f005bdb267750e4c0d9d5fb70104801344b8d2feefe885b954d072ca24c",
+      "bytes": 6339
+    },
+    {
+      "source": "threatmodel.json",
+      "bundledAs": "artifacts/threatmodel.json",
+      "sha256": "beeaef094369eaf0015c06b00be3d7aa7f723dc0101fd0b81004deedb8df31be",
+      "bytes": 22563
+    }
+  ],
+  "notes": [
+    "The manifest is tamper-evident, not cryptographically signed.",
+    "Configuration and reviewed context are represented by digests but are not copied into the bundle.",
+    "Hedge surfaces architecture changes and design risks; it does not prove the absence of vulnerabilities."
+  ],
+  "manifestDigest": "ddbdd9948acdffda7e6c1a782fe73284f423f9131145f842f59e3c8abc73f971"
+}

@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "framework": {
+      "default": "auto",
+      "type": "string",
+      "enum": ["nextjs", "express", "auto"]
+    },
+    "fail_on": {
+      "default": "high",
+      "type": "string",
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "ignored_paths": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "models": {
+      "default": {
+        "triage": "gpt-5.6-luna",
+        "analysis": "gpt-5.6-sol"
+      },
+      "type": "object",
+      "properties": {
+        "triage": {
+          "default": "gpt-5.6-luna",
+          "type": "string"
+        },
+        "analysis": {
+          "default": "gpt-5.6-sol",
+          "type": "string"
+        }
+      },
+      "required": ["triage", "analysis"],
+      "additionalProperties": false
+    },
+    "policies": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{2,63}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 3
+          },
+          "severity": {
+            "default": "high",
+            "type": "string",
+            "enum": ["info", "low", "medium", "high", "critical"]
+          },
+          "match": {
+            "default": {
+              "kinds": [],
+              "trust_zones": [],
+              "methods": []
+            },
+            "type": "object",
+            "properties": {
+              "kinds": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "entrypoint",
+                    "middleware",
+                    "auth-control",
+                    "authorization-control",
+                    "database",
+                    "data-model",
+                    "storage",
+                    "external-service",
+                    "secret",
+                    "dependency",
+                    "component"
+                  ]
+                }
+              },
+              "trust_zones": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["public", "application", "privileged", "data", "external", "unknown"]
+                }
+              },
+              "methods": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "label_pattern": {
+                "type": "string"
+              }
+            },
+            "required": ["kinds", "trust_zones", "methods"],
+            "additionalProperties": false
+          },
+          "require_controls": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "authentication",
+                "authorization",
+                "validation",
+                "rate-limit",
+                "size-limit",
+                "content-type",
+                "encryption",
+                "logging",
+                "ownership",
+                "other"
+              ]
+            }
+          },
+          "security_invariant": {
+            "type": "string",
+            "minLength": 5
+          },
+          "potential_impact": {
+            "type": "string",
+            "minLength": 5
+          },
+          "asset": {
+            "default": "Organization-defined protected asset",
+            "type": "string"
+          },
+          "attacker_capability": {
+            "default": "Reach the matched architecture surface",
+            "type": "string"
+          },
+          "stride": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Spoofing",
+                "Tampering",
+                "Repudiation",
+                "Information Disclosure",
+                "Denial of Service",
+                "Elevation of Privilege"
+              ]
+            }
+          },
+          "cwe": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "severity",
+          "match",
+          "require_controls",
+          "security_invariant",
+          "potential_impact",
+          "asset",
+          "attacker_capability",
+          "stride",
+          "cwe"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "invariants": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{2,63}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 5
+          },
+          "severity": {
+            "default": "high",
+            "type": "string",
+            "enum": ["info", "low", "medium", "high", "critical"]
+          },
+          "applies_to": {
+            "default": {
+              "kinds": [],
+              "trust_zones": [],
+              "methods": []
+            },
+            "type": "object",
+            "properties": {
+              "kinds": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "entrypoint",
+                    "middleware",
+                    "auth-control",
+                    "authorization-control",
+                    "database",
+                    "data-model",
+                    "storage",
+                    "external-service",
+                    "secret",
+                    "dependency",
+                    "component"
+                  ]
+                }
+              },
+              "trust_zones": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["public", "application", "privileged", "data", "external", "unknown"]
+                }
+              },
+              "methods": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "label_pattern": {
+                "type": "string"
+              }
+            },
+            "required": ["kinds", "trust_zones", "methods"],
+            "additionalProperties": false
+          },
+          "requires": {
+            "type": "object",
+            "properties": {
+              "controls": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "authentication",
+                    "authorization",
+                    "validation",
+                    "rate-limit",
+                    "size-limit",
+                    "content-type",
+                    "encryption",
+                    "logging",
+                    "ownership",
+                    "other"
+                  ]
+                }
+              }
+            },
+            "required": ["controls"],
+            "additionalProperties": false
+          },
+          "rationale": {
+            "default": "Repository-defined security invariant",
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "severity",
+          "applies_to",
+          "requires",
+          "rationale",
+          "enabled"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limits": {
+      "default": {
+        "max_files": 120,
+        "max_bytes": 350000
+      },
+      "type": "object",
+      "properties": {
+        "max_files": {
+          "default": 120,
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_bytes": {
+          "default": 350000,
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["max_files", "max_bytes"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "framework",
+    "fail_on",
+    "ignored_paths",
+    "models",
+    "policies",
+    "invariants",
+    "limits"
+  ],
+  "additionalProperties": false
+}

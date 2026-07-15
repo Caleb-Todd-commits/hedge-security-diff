@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1",
+  "name": "upload-invariant",
+  "repository": "hedge/examples-upload",
+  "config": {
+    "framework": "nextjs",
+    "fail_on": "high",
+    "invariants": [
+      {
+        "id": "INV-UPLOAD",
+        "description": "Public upload routes require authentication and a size limit.",
+        "severity": "high",
+        "applies_to": {
+          "kinds": ["entrypoint"],
+          "trust_zones": ["public"],
+          "methods": ["POST"],
+          "label_pattern": "* /api/files/*"
+        },
+        "requires": {
+          "controls": ["authentication", "size-limit"]
+        },
+        "rationale": "Anonymous unbounded uploads can consume storage and introduce hostile content."
+      }
+    ]
+  },
+  "expected": {
+    "surfaceChanged": true,
+    "decision": "block",
+    "minFindings": 1,
+    "observationKindsInclude": ["node-added", "invariant-evaluated"],
+    "invariantStatuses": {
+      "INV-UPLOAD": "violated"
+    }
+  }
+}

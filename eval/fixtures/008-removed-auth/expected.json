@@ -1,0 +1,6 @@
+{
+  "surfaceChanged": true,
+  "minimumFindings": 1,
+  "expectedSeverities": ["critical"],
+  "expectedTitlesContain": ["control removed", "authentication"]
+}

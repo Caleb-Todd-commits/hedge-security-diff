@@ -1,0 +1,9 @@
+name: Release helper
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo inspect

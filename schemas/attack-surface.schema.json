@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "repository": {
+      "default": "local",
+      "type": "string"
+    },
+    "framework": {
+      "default": "unknown",
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "entrypoint",
+              "middleware",
+              "auth-control",
+              "authorization-control",
+              "database",
+              "data-model",
+              "storage",
+              "external-service",
+              "secret",
+              "dependency",
+              "component"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "trustZone": {
+            "default": "unknown",
+            "type": "string",
+            "enum": ["public", "application", "privileged", "data", "external", "unknown"]
+          },
+          "evidence": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endLine": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "snippet": {
+                  "type": "string"
+                },
+                "extractor": {
+                  "type": "string"
+                },
+                "commit": {
+                  "type": "string"
+                }
+              },
+              "required": ["file", "extractor"],
+              "additionalProperties": false
+            }
+          },
+          "controls": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "authentication",
+                    "authorization",
+                    "validation",
+                    "rate-limit",
+                    "size-limit",
+                    "content-type",
+                    "encryption",
+                    "logging",
+                    "ownership",
+                    "other"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "snippet": {
+                        "type": "string"
+                      },
+                      "extractor": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["file", "extractor"],
+                    "additionalProperties": false
+                  }
+                },
+                "confidence": {
+                  "default": 1,
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": ["type", "label", "evidence", "confidence"],
+              "additionalProperties": false
+            }
+          },
+          "metadata": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "required": ["id", "kind", "label", "trustZone", "evidence", "controls", "metadata"],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "calls",
+              "reads",
+              "writes",
+              "authenticates",
+              "authorizes",
+              "crosses-trust-boundary",
+              "uses-secret",
+              "depends-on"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endLine": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "snippet": {
+                  "type": "string"
+                },
+                "extractor": {
+                  "type": "string"
+                },
+                "commit": {
+                  "type": "string"
+                }
+              },
+              "required": ["file", "extractor"],
+              "additionalProperties": false
+            }
+          },
+          "controls": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "authentication",
+                    "authorization",
+                    "validation",
+                    "rate-limit",
+                    "size-limit",
+                    "content-type",
+                    "encryption",
+                    "logging",
+                    "ownership",
+                    "other"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "snippet": {
+                        "type": "string"
+                      },
+                      "extractor": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["file", "extractor"],
+                    "additionalProperties": false
+                  }
+                },
+                "confidence": {
+                  "default": 1,
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": ["type", "label", "evidence", "confidence"],
+              "additionalProperties": false
+            }
+          },
+          "confidence": {
+            "default": 1,
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": ["id", "from", "to", "kind", "evidence", "controls", "confidence"],
+        "additionalProperties": false
+      }
+    },
+    "assumptions": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknowns": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "repository",
+    "framework",
+    "nodes",
+    "edges",
+    "assumptions",
+    "unknowns"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,10 @@
+diff --git a/app/api/files/upload/route.ts b/app/api/files/upload/route.ts
+new file mode 100644
+--- /dev/null
++++ b/app/api/files/upload/route.ts
+@@ -0,0 +1,7 @@
++export async function POST(request: Request) {
++  const body = await request.formData();
++  await prisma.file.create({ data: { name: String(body.get("name")) } });
++  return Response.json({ ok: true });
++}

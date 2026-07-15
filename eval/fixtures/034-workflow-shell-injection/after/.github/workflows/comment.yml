@@ -1,0 +1,9 @@
+name: Comment responder
+on: issue_comment
+permissions:
+  contents: write
+jobs:
+  respond:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.comment.body }}" > response.txt

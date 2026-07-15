@@ -1,0 +1,56 @@
+name: Hedge risk acceptance
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  prune:
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '@hedge prune ')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authorize and parse risk acceptance
+        id: command
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const body = context.payload.comment.body.trim();
+            const match = /^@hedge\s+prune\s+(HEDGE-\d{3,})\s+reason:["']([^"']+)["']$/i.exec(body);
+            if (!match) return core.setFailed('Use: @hedge prune HEDGE-NNN reason:"documented reason"');
+            const actor = context.payload.comment.user.login;
+            const access = await github.rest.repos.getCollaboratorPermissionLevel({...context.repo, username: actor});
+            if (!['admin','maintain','write'].includes(access.data.permission)) return core.setFailed('Write permission is required.');
+            const pr = await github.rest.pulls.get({...context.repo, pull_number: context.issue.number});
+            core.setOutput('risk_id', match[1].toUpperCase());
+            core.setOutput('reason_b64', Buffer.from(match[2], 'utf8').toString('base64'));
+            core.setOutput('actor', actor);
+            core.setOutput('base_ref', pr.data.base.ref);
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.command.outputs.base_ref }}
+          fetch-depth: 0
+      - name: Record acceptance in trusted state
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: prune
+          risk-id: ${{ steps.command.outputs.risk_id }}
+          acceptance-reason-b64: ${{ steps.command.outputs.reason_b64 }}
+          actor: ${{ steps.command.outputs.actor }}
+      - name: Open state update pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RISK_ID: ${{ steps.command.outputs.risk_id }}
+        run: |
+          BRANCH="hedge/accept-${RISK_ID,,}-${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH"
+          git config user.name "hedge-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add threatmodel.json THREATMODEL.md
+          git commit -m "chore: accept ${RISK_ID}"
+          git push origin "$BRANCH"
+          gh pr create --base "${{ steps.command.outputs.base_ref }}" --head "$BRANCH" --title "Hedge: accept ${RISK_ID}" --body "Records a maintainer-authorized risk acceptance with actor, time, and reason."
