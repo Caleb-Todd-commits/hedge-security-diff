@@ -2,6 +2,9 @@
 
 **Security architecture diffs for pull requests.**
 
+[![CI](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml/badge.svg)](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml)
+[![Demo](https://img.shields.io/badge/demo-security%20diff-1f6f50)](https://caleb-todd-commits.github.io/hedge-security-diff/)
+
 > Git shows which lines changed. Hedge shows how the system's attack surface, trust boundaries, privilege, controls, and data flows changed.
 
 Hedge is a TypeScript GitHub Action and CLI that maintains an evidence-linked security architecture model. It stays silent on changes that do not alter the modeled surface. When a pull request changes a meaningful path, Hedge explains the delta, records design-level risks, suggests executable regression witnesses, and supports an approval-gated Codex remediation flow.
@@ -28,7 +31,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Approval-gated `@hedge fix HEDGE-NNN` example using `openai/codex-action@v1`, an isolated patch artifact, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 120 unit/contract/schema tests.
+- 45-case deterministic DriftBench suite and 121 unit/contract/schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -39,6 +42,22 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Generated Draft 2020-12 JSON Schemas for every public Hedge artifact.
 
 ## Quick start
+
+### Judge in 30 seconds
+
+Open the [hosted, no-install security-diff dashboard](https://caleb-todd-commits.github.io/hedge-security-diff/). It is a recorded deterministic demo artifact, so it requires no account, API key, package installation, or rebuild. The dashboard links the architecture delta to the same Markdown, SARIF, analysis JSON, and evidence included under `examples/demo-output/`.
+
+For an executable offline demonstration after installing locked dependencies:
+
+```bash
+npm ci
+npm run build
+node dist/cli/index.cjs replay examples/replays/upload-invariant --output .hedge/replays/upload-invariant
+```
+
+Supported judge platform: macOS or Linux with Node.js 22 or newer and Git. The GitHub Action runs on GitHub-hosted Linux using Node 24. Windows is not part of the Build Week validation matrix.
+
+### Install into a repository
 
 Install Hedge into another repository after publishing and pinning the Action:
 
@@ -222,7 +241,11 @@ The Build Week implementation is narrow by design: TypeScript, Next.js App Route
 
 ## Documentation
 
-Start with [`START_HERE.md`](START_HERE.md), then read [`MASTER_PLAN.md`](MASTER_PLAN.md), [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md), [`docs/SECURITY.md`](docs/SECURITY.md), and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+Start with [`START_HERE.md`](START_HERE.md), then read [`MASTER_PLAN.md`](MASTER_PLAN.md), [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md), [`docs/SECURITY.md`](docs/SECURITY.md), and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md). Build Week contribution boundaries and snapshot evidence are recorded in [`docs/BUILD_WEEK_PROVENANCE.md`](docs/BUILD_WEEK_PROVENANCE.md).
+
+## How Codex and GPT-5.6 shaped Hedge
+
+The initial Build Week foundation was created in ChatGPT with GPT-5.6 Sol, then transferred into a primary Codex thread. GPT-5.6 is also part of Hedge's runtime: deterministic extraction establishes the architecture delta, Luna performs bounded triage, and Sol interprets evidence through strict Structured Outputs. Codex is used for repository implementation, tests, evaluation, security-boundary review, and the approval-gated draft remediation workflow. The human author retained the product direction, security commitments, and final decisions. See the [provenance record](docs/BUILD_WEEK_PROVENANCE.md) and [decision log](docs/DECISIONS.md).
 
 ## License
 

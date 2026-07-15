@@ -1,0 +1,43 @@
+name: Demo dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "examples/demo-output/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Assemble static demo
+        run: |
+          mkdir _site
+          cp examples/demo-output/security-diff.html _site/index.html
+          cp examples/demo-output/security-diff.md _site/security-diff.md
+          cp examples/demo-output/results.sarif _site/results.sarif
+          cp examples/demo-output/delta.json _site/delta.json
+          cp examples/demo-output/analysis.json _site/analysis.json
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: _site
+      - name: Deploy dashboard
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

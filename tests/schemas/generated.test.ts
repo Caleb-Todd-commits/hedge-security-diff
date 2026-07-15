@@ -22,4 +22,37 @@ describe("published JSON schemas", () => {
       expect(schema.type).toBe("object");
     });
   }
+
+  it("does not publish runtime-generated timestamp defaults", async () => {
+    for (const name of names) {
+      const schema = JSON.parse(await readFile(`schemas/${name}`, "utf8")) as unknown;
+      expect(findRecordedAtDefaults(schema), name).toEqual([]);
+    }
+  });
 });
+
+function findRecordedAtDefaults(value: unknown, path = "$", matches: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => findRecordedAtDefaults(item, `${path}[${index}]`, matches));
+    return matches;
+  }
+  if (!value || typeof value !== "object") return matches;
+
+  const record = value as Record<string, unknown>;
+  const properties = record.properties;
+  if (properties && typeof properties === "object" && !Array.isArray(properties)) {
+    const recordedAt = (properties as Record<string, unknown>).recordedAt;
+    if (
+      recordedAt &&
+      typeof recordedAt === "object" &&
+      !Array.isArray(recordedAt) &&
+      Object.hasOwn(recordedAt, "default")
+    ) {
+      matches.push(`${path}.properties.recordedAt.default`);
+    }
+  }
+  for (const [key, child] of Object.entries(record)) {
+    findRecordedAtDefaults(child, `${path}.${key}`, matches);
+  }
+  return matches;
+}

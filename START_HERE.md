@@ -22,7 +22,7 @@ npm run audit:high
 
 Current included validation target:
 
-- 120 unit, workflow-contract, replay, and schema tests.
+- 121 unit, workflow-contract, replay, and schema tests.
 - 45 deterministic DriftBench cases.
 - Next.js routes, middleware, Server Actions, Express ordering/scope, Prisma, GitHub workflow, policy, report, state-integrity, migration, and adversarial fixtures.
 - Demo repository branch materialization and counterfactual upload witness.
