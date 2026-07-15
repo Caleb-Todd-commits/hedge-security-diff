@@ -18,11 +18,11 @@ Threat models often become static documents while code changes continuously. Exi
 
 ## How Codex was used
 
-Codex built the TypeScript Action and CLI, graph and schema system, framework extractors, GitHub comment flow, evaluation fixtures, tests, and remediation workflow under a human-defined security contract. The primary `/feedback` session contains the majority of the core implementation.
+The initial Build Week foundation was created in ChatGPT with GPT-5.6 Sol under a human-defined security contract, then transferred to the primary Codex project thread. Codex independently validated the implementation, repaired public dependency and artifact reproducibility, made the Action directly installable, isolated its bundle from ambient dependencies, added GitHub-hosted Action and release validation, published the no-install judge experience, and continued the tests, evaluation, security review, and submission work. The final Devpost entry will use the `/feedback` ID from the primary Codex project thread and will not claim work that is absent from that thread.
 
 ## How GPT-5.6 was used
 
-GPT-5.6 does not invent the repository architecture. Deterministic analysis establishes what changed. Luna decides whether deeper reasoning is warranted; Sol explains why the evidence-linked delta may matter, identifies concrete attack paths and missing controls, and proposes a testable security invariant. Structured Outputs keep the response machine-valid and reviewable.
+GPT-5.6 Sol helped develop the initial project foundation in ChatGPT. Inside Hedge, GPT-5.6 does not invent the repository architecture: deterministic analysis establishes what changed, Luna decides whether deeper reasoning is warranted, and Sol explains why the evidence-linked delta may matter, identifies concrete attack paths and missing controls, and proposes a testable security invariant. Structured Outputs keep the response machine-valid and reviewable.
 
 ## Honest limitations
 

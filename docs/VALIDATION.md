@@ -1,6 +1,6 @@
 # Release validation record
 
-This record describes the evidence produced for the packaged `0.5.0` foundation. It is deliberately narrower than a production assurance claim.
+This record describes the evidence produced for the packaged `0.5.1` Build Week release. It is deliberately narrower than a production assurance claim.
 
 ## Automated checks
 
