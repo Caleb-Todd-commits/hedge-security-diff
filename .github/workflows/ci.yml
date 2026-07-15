@@ -27,6 +27,8 @@ jobs:
       - name: Verify generated artifacts are current
         run: git diff --exit-code -- schemas eval/results.json eval/results.md
       - run: npm run build
+      - name: Verify committed Action bundle is current
+        run: git diff --exit-code -- dist/action/index.cjs
       - run: npm run validate:release
       - run: npm run validate:demo
       - run: npm run audit:high

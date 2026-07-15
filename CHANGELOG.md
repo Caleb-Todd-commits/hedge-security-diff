@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — public, installable Build Week release
+
+- Published the bundled Node 24 Action entry point so repository refs execute without a local build.
+- Added a GitHub-hosted self-test that invokes the packaged Action against the demo repository.
+- Made bundling independent of optional packages installed above the repository root.
+- Repaired the lockfile's public-registry portability and made evaluation/schema generation deterministic.
+- Added the no-install Pages dashboard, release artifacts, Build Week provenance, and expanded clean-run CI.
+- Expanded the automated suite from 120 to 121 tests.
+
 ## 0.5.0 — invariants, evidence layers, and reproducible replays
 
 - Added first-class security invariants with explicit matching, required controls, four-state evaluation, evidence, and deterministic invariant findings.
