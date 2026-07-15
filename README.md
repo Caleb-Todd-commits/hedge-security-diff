@@ -62,10 +62,12 @@ Supported judge platform: macOS or Linux with Node.js 22 or newer and Git. The G
 Install Hedge into another repository after publishing and pinning the Action:
 
 ```bash
-hedge install --action-ref YOUR_ORG/hedge@PINNED_COMMIT_SHA --full
+hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@v0.5.1 --full
 hedge doctor
 hedge init --configure
 ```
+
+The tag above is convenient for judging. For production, resolve the release tag and pin `uses:` to its full immutable commit SHA.
 
 Develop from this source package:
 
@@ -159,11 +161,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+      - uses: Caleb-Todd-commits/hedge-security-diff@v0.5.1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           github-token: ${{ github.token }}
 ```
+
+Release tags make evaluation convenient; production workflows should replace `v0.5.1` with the release's full commit SHA.
 
 See `examples/workflows/` for the PR check, model refresh, Codex remediation, and counterfactual verification workflows.
 

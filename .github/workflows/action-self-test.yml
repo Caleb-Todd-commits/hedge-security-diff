@@ -1,0 +1,39 @@
+name: Action self-test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/action-self-test.yml"
+      - "action.yml"
+      - "dist/action/index.cjs"
+  pull_request:
+    paths:
+      - ".github/workflows/action-self-test.yml"
+      - "action.yml"
+      - "dist/action/index.cjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  initialize-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Run the packaged Action
+        id: hedge
+        uses: ./
+        with:
+          command: init
+          root: examples/demo-notes
+          dry-run: "true"
+      - name: Verify Action outputs
+        env:
+          SURFACE_CHANGED: ${{ steps.hedge.outputs.surface-changed }}
+          REPORT_PATH: ${{ steps.hedge.outputs.report-path }}
+        run: |
+          test "$SURFACE_CHANGED" = "true"
+          test -f "$REPORT_PATH"

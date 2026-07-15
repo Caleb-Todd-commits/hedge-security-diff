@@ -5,7 +5,7 @@
 | Area                                      | Status                          | Evidence                                                                                 |
 | ----------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
 | TypeScript project                        | Working                         | `npm run typecheck`                                                                      |
-| GitHub Action and CLI                     | Built                           | `dist/action/index.cjs`, `dist/cli/index.cjs`                                            |
+| GitHub Action and CLI                     | Built                           | committed `dist/action/index.cjs`; release-packaged `dist/cli/index.cjs`                 |
 | Installer and diagnostics                 | Working                         | `hedge install`, `hedge doctor`                                                          |
 | Baseline and reviewed context             | Working                         | atomic writes, full-register digest, policy/context/source binding, legacy migration     |
 | Security architecture diff                | Working                         | node/edge added, removed, and changed sets                                               |
@@ -35,7 +35,7 @@
 
 ## Implemented but not live-validated here
 
-The GitHub and Codex workflows require a published immutable Hedge revision, a real GitHub repository, repository permissions, and OpenAI credentials. Their local contracts and security boundaries are tested, but this package does not claim that a remote Codex remediation PR has already been opened or that production precision/cost has been measured.
+The packaged GitHub Action is invoked by a GitHub-hosted self-test without an OpenAI key. The approval-gated Codex remediation and verification workflows still require a target pull request, repository permissions, and OpenAI credentials. Their local contracts and security boundaries are tested, but this package does not claim that a remote Codex remediation PR has already been opened or that production precision/cost has been measured.
 
 ## Deliberately limited
 
