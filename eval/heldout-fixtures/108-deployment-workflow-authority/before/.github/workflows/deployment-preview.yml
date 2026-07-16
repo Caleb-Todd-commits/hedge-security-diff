@@ -1,0 +1,10 @@
+name: Deployment preview
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "preview metadata only"

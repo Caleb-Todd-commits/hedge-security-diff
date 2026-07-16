@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ import {
   type LiveModelRunner
 } from "../../src/eval/live-runner.js";
 
-const fixturesRoot = resolve("eval/fixtures");
+const fixturesRoot = resolve("eval/heldout-fixtures");
 const caseConfigPath = resolve("eval/live-eval-cases.json");
 
 describe("API-backed live evaluation", () => {
@@ -48,7 +48,7 @@ describe("API-backed live evaluation", () => {
     expect(noDeltaStatusForCoverage("unsupported")).toBe("unconfirmed-no-delta");
   });
 
-  it("runs exactly ten deterministic pairs and aggregates routing, stability, and provenance", async () => {
+  it("runs exactly ten frozen held-out pairs and aggregates routing, stability, and provenance", async () => {
     const callsByRepository = new Map<string, number>();
     let boundaryProbeCalls = 0;
     const runner: LiveModelRunner = {
@@ -56,11 +56,11 @@ describe("API-backed live evaluation", () => {
         const repository = request.graph.repository;
         const call = (callsByRepository.get(repository) ?? 0) + 1;
         callsByRepository.set(repository, call);
-        if (repository.endsWith("006-public-secret-boundary")) {
+        if (repository.endsWith("110-integration-boundary-probe")) {
           expect(containsInstructionLikeContent(request.patch)).toBe(true);
           boundaryProbeCalls += 1;
         }
-        const variable = repository.endsWith("010-dynamic-ssrf") && call === 2;
+        const variable = repository.endsWith("107-link-preview-outbound") && call === 2;
         return fakeExecution(request, variable ? "block" : "warn");
       }
     };
@@ -74,8 +74,12 @@ describe("API-backed live evaluation", () => {
     });
 
     expect(summary.casesConfigured).toBe(10);
-    expect(summary.corpusClassification).toBe("representative-not-held-out");
-    expect(summary.heldOutGateCompleted).toBe(false);
+    expect(summary.corpusClassification).toBe("frozen-held-out");
+    expect(summary.heldOutGateCompleted).toBe(true);
+    expect(summary.frozenAt).toBe("2026-07-16T14:53:15.000Z");
+    expect(summary.corpusDigest).toBe(
+      "4da85338c82db9e6fdd595831be7b33389625862fbd26e79ddc4ffbb6797edfd"
+    );
     expect(summary.requestedRuns).toBe(20);
     expect(summary.recordedRuns).toBe(20);
     expect(summary.generatedAt).toBe("2026-07-19T12:00:00.000Z");
@@ -88,29 +92,80 @@ describe("API-backed live evaluation", () => {
       summary.cases.every(
         (item) =>
           /^[a-f0-9]{64}$/.test(item.provenance.baseSha) &&
-          /^[a-f0-9]{64}$/.test(item.provenance.headSha)
+          /^[a-f0-9]{64}$/.test(item.provenance.headSha) &&
+          /^[a-f0-9]{64}$/.test(item.provenance.fixtureDigest) &&
+          item.provenance.corpusDigest === summary.corpusDigest
       )
     ).toBe(true);
     expect(summary.cases.every((item) => item.findingStability.stable)).toBe(true);
     expect(boundaryProbeCalls).toBe(2);
-    expect(summary.boundaryProbeCases).toEqual(["006-public-secret-boundary"]);
+    expect(summary.boundaryProbeCases).toEqual(["110-integration-boundary-probe"]);
     expect(
-      summary.cases.find((item) => item.id === "006-public-secret-boundary")?.provenance
+      summary.cases.find((item) => item.id === "110-integration-boundary-probe")?.provenance
         .boundaryProbe
     ).toBe(true);
     expect(
-      summary.cases.find((item) => item.id === "010-dynamic-ssrf")?.recordedDecisionStability.stable
+      summary.cases.find((item) => item.id === "110-integration-boundary-probe")?.architectureDelta
+    ).toBe(true);
+    expect(
+      summary.cases.find((item) => item.id === "107-link-preview-outbound")
+        ?.recordedDecisionStability.stable
     ).toBe(false);
 
-    const injection = summary.cases.find((item) => item.id === "005-prompt-injection-data");
-    expect(injection?.runs.every((run) => run.routing.path === "no-model")).toBe(true);
-    expect(
-      injection?.runs.every(
-        (run) =>
-          run.boundary.instructionLikeContentObserved &&
-          run.boundary.status === "not-exercised-no-model"
-      )
-    ).toBe(true);
+    const benign = summary.cases.find((item) => item.id === "101-benign-clock-refactor");
+    expect(benign?.runs.every((run) => run.routing.path === "no-model")).toBe(true);
+    expect(benign?.runs.every((run) => run.status === "confirmed-no-delta")).toBe(true);
+
+    const unknown = summary.cases.find((item) => item.id === "109-unresolved-billing-control");
+    expect(unknown?.coverage.comparison).toBe("partial");
+  });
+
+  it("keeps the held-out directory separate and rejects fixture tampering before model work", async () => {
+    const [heldOutNames, developmentNames] = await Promise.all([
+      readdir(fixturesRoot),
+      readdir(resolve("eval/fixtures"))
+    ]);
+    expect(heldOutNames).toHaveLength(10);
+    expect(heldOutNames.some((name) => developmentNames.includes(name))).toBe(false);
+
+    let calls = 0;
+    const runner: LiveModelRunner = {
+      async run(request) {
+        calls += 1;
+        return fakeExecution(request, "warn");
+      }
+    };
+    await expect(
+      runLiveEvalSuite({
+        fixturesRoot: resolve("eval/fixtures"),
+        caseConfigPath,
+        runner,
+        repeats: 1
+      })
+    ).rejects.toThrow("separate heldout-fixtures directory");
+
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "hedge-heldout-tamper-"));
+    const copiedFixtures = join(temporaryRoot, "heldout-fixtures");
+    await cp(fixturesRoot, copiedFixtures, { recursive: true });
+    const changedFile = join(
+      copiedFixtures,
+      "101-benign-clock-refactor",
+      "after",
+      "app/api/clock/route.ts"
+    );
+    await writeFile(
+      changedFile,
+      `${await readFile(changedFile, "utf8")}\n// changed after freeze\n`
+    );
+    await expect(
+      runLiveEvalSuite({
+        fixturesRoot: copiedFixtures,
+        caseConfigPath,
+        runner,
+        repeats: 1
+      })
+    ).rejects.toThrow("fixture digest mismatch for 101-benign-clock-refactor");
+    expect(calls).toBe(0);
   });
 
   it("fails closed and stops issuing model requests after a boundary failure", async () => {

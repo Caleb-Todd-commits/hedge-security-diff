@@ -1,0 +1,13 @@
+name: Deployment preview
+on:
+  pull_request_target:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: node scripts/publish-preview.mjs

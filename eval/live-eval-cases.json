@@ -1,47 +1,59 @@
 {
-  "schemaVersion": "0.1",
-  "corpusClassification": "representative-not-held-out",
+  "schemaVersion": "0.2",
+  "corpusClassification": "frozen-held-out",
+  "frozenAt": "2026-07-16T14:53:15.000Z",
+  "corpusDigest": "4da85338c82db9e6fdd595831be7b33389625862fbd26e79ddc4ffbb6797edfd",
   "cases": [
     {
-      "id": "001-benign-refactor",
-      "category": "benign-no-delta"
+      "id": "101-benign-clock-refactor",
+      "category": "benign-semantic-no-delta",
+      "fixtureDigest": "a6c1bfd2ae3d97f8d7b6444af605599c8ef65e4297266f1f2836c0f13a4fde4b"
     },
     {
-      "id": "002-upload-endpoint",
-      "category": "new-entrypoint-and-storage"
+      "id": "102-feedback-entrypoint",
+      "category": "supported-entrypoint-delta",
+      "fixtureDigest": "aa19048cfb6af00695f403e8dedb687d4c8b78cb6feeeaa45f0e7d00f37d068d"
     },
     {
-      "id": "004-upload-mitigation",
-      "category": "control-addition"
+      "id": "103-rate-limit-addition",
+      "category": "confirmed-control-addition",
+      "fixtureDigest": "0b3dff6c809bd5acdf5366177924cd670628f5c6b51c033c06d0f22e8f02074c"
     },
     {
-      "id": "005-prompt-injection-data",
-      "category": "prompt-injection-silence"
+      "id": "104-session-control-removal",
+      "category": "confirmed-control-removal",
+      "fixtureDigest": "44e2f39567c3a2d41f23817af01dc4d26c27f389d62bfa4910630278391edf96"
     },
     {
-      "id": "006-public-secret-boundary",
-      "category": "secret-boundary",
-      "boundaryProbe": true
+      "id": "105-customer-data-read",
+      "category": "database-read-boundary",
+      "fixtureDigest": "2cc320aa4944f49d78e1d8ceb514ada3e2fc54074511aecb275faa52eded6c0f"
     },
     {
-      "id": "008-removed-auth",
-      "category": "control-removal"
+      "id": "106-avatar-storage-write",
+      "category": "object-storage-write-boundary",
+      "fixtureDigest": "9a491cac9afe4646f086226789ec35e46cd36264b05294e147b31109fab1145a"
     },
     {
-      "id": "009-protected-db-write",
-      "category": "protected-data-write"
+      "id": "107-link-preview-outbound",
+      "category": "dynamic-outbound-boundary",
+      "fixtureDigest": "9476a925af450a9c73e43b92f42524be4f9a82a6b58c5266f933e0aada629858"
     },
     {
-      "id": "010-dynamic-ssrf",
-      "category": "dynamic-outbound-flow"
+      "id": "108-deployment-workflow-authority",
+      "category": "workflow-authority-boundary",
+      "fixtureDigest": "ed962512e494b19c3d139ae8f2aba916cf0116d64dac68e8065483367f9419ac"
     },
     {
-      "id": "033-workflow-permission-expansion",
-      "category": "workflow-permission-change"
+      "id": "109-unresolved-billing-control",
+      "category": "partial-unresolved-control",
+      "fixtureDigest": "c2c9612d690c74f88e60c26cbdb45f58bee7bea26405091bbb914c1aac809172"
     },
     {
-      "id": "044-complex-matcher-unknown",
-      "category": "unsupported-control-matcher"
+      "id": "110-integration-boundary-probe",
+      "category": "delta-bearing-prompt-boundary",
+      "boundaryProbe": true,
+      "fixtureDigest": "8cfef0f0b8ea3b13d18213ad1af3d588ae8f016313c16a7b858da96e0ae78b50"
     }
   ]
 }

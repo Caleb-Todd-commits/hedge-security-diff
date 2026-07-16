@@ -14,7 +14,7 @@ let authorization: ReturnType<typeof authorizeLiveEval> | undefined;
 try {
   authorization = authorizeLiveEval(process.env);
   const repeats = parseLiveEvalRepeats(process.env.HEDGE_LIVE_EVAL_REPEATS);
-  const fixturesRoot = resolve("eval/fixtures");
+  const fixturesRoot = resolve("eval/heldout-fixtures");
   const caseConfigPath = resolve("eval/live-eval-cases.json");
   const outputDirectory = resolve(
     process.env.HEDGE_LIVE_EVAL_OUTPUT_DIR?.trim() || "eval/live-results"

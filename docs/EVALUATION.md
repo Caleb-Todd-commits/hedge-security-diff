@@ -54,22 +54,27 @@ export OPENAI_API_KEY
 HEDGE_LIVE_EVAL=1 npm run eval:live
 ```
 
-The default is exactly three repetitions of the ten representative before/after pairs listed in `eval/live-eval-cases.json`. These reuse deterministic development fixtures and are explicitly classified `representative-not-held-out`; the machine result records `heldOutGateCompleted: false`. A genuinely frozen held-out corpus remains an uncompleted external gate and must be run before any held-out-performance claim. To make a bounded diagnostic run, set `HEDGE_LIVE_EVAL_REPEATS` to an integer from 1 through 5. Results default to `eval/live-results/results.json` and `eval/live-results/results.md`; `HEDGE_LIVE_EVAL_OUTPUT_DIR` can select another directory.
+The default is exactly three repetitions of the ten before/after pairs listed in `eval/live-eval-cases.json`. They live only in `eval/heldout-fixtures`, do not reuse a development-fixture ID or source pair, and were frozen before any API-backed run at `2026-07-16T14:53:15.000Z`. The aggregate corpus SHA-256 is `4da85338c82db9e6fdd595831be7b33389625862fbd26e79ddc4ffbb6797edfd`. Hedge verifies every per-fixture digest, the aggregate manifest digest, the exact ten-directory set, and the separate fixture-root name before issuing a model request. Any source or manifest change invalidates the gate before model work begins.
+
+The fixed cases cover a benign semantic refactor, a supported entry-point delta, confirmed rate-limit addition, authentication removal, database-read and object-storage-write boundaries, a dynamic outbound flow, a workflow-authority change, unresolved-control uncertainty, and a delta-bearing instruction-boundary probe. These cases were not used to tune analyzers, prompts, schemas, thresholds, or product policy; doing so would invalidate the held-out designation. The machine result records `heldOutGateCompleted: true` only after the corpus integrity checks pass. That field proves separation and freeze, not a successful API run or a performance result.
+
+To make a bounded diagnostic run, set `HEDGE_LIVE_EVAL_REPEATS` to an integer from 1 through 5. Results default to `eval/live-results/results.json` and `eval/live-results/results.md`; `HEDGE_LIVE_EVAL_OUTPUT_DIR` can select another directory.
 
 The harness:
 
 - Builds deterministic base and head graphs from the selected fixture trees and binds every source observation to an exact synthetic SHA-256 revision.
 - Computes comparison coverage from both revisions. A no-delta pair is `confirmed-no-delta` only with complete comparison coverage; partial or unsupported no-delta runs remain unconfirmed and still make no model request.
 - Creates a bounded untrusted patch (60,000 bytes maximum) and uses Hedge's configured Luna triage and Sol analysis route.
-- Adds a fixed, typed synthetic instruction-boundary probe to the delta-bearing `006-public-secret-boundary` patch. The probe is recorded in provenance and exercises the model path without changing fixture source or graph provenance.
+- Verifies the SHA-256-frozen corpus before graph construction and records both the per-case fixture digest and aggregate corpus digest in every case's provenance.
+- Adds a fixed, typed synthetic instruction-boundary probe to the delta-bearing `110-integration-boundary-probe` patch. The probe is recorded in provenance and exercises the model path without changing fixture source or graph provenance.
 - Records each route, exact-evidence validation and rejected-proposal counts, normalized finding and recorded-decision signatures, input/output tokens, latency, API/model failures, and instruction-boundary state.
 - Records the timestamp plus Hedge, extractor, prompt, pipeline-schema, model-output-schema, and model versions.
 - Stops issuing model requests immediately if Sol reports that the untrusted-data boundary did not hold. Ordinary API/model failures are recorded and make the operational gate fail, but provider error prose is not persisted because it can echo request data.
 - Writes bounded artifacts containing hashes, counts, enum values, model IDs, and sanitized fixed failure descriptions. It does not write the API key, source text, patch text, prompts, model prose, or raw sensitive content.
 
-Unit tests use an injected fake runner and make no network requests. They cover opt-in and credential isolation, ten-case aggregation, stability, exact synthetic provenance, the delta-bearing boundary probe, fail-closed boundary behavior, honest no-delta coverage semantics, and credential non-persistence.
+Unit tests use an injected fake runner and make no network requests. They cover opt-in and credential isolation, ten-case aggregation, directory separation, per-case and corpus integrity, tamper rejection before model work, stability, exact synthetic provenance, the delta-bearing boundary probe, fail-closed boundary behavior, honest no-delta coverage semantics, and credential non-persistence.
 
-The generated report is deliberately not an accuracy score. It supports claims only about these ten fixed representative pairs and the recorded model/prompt/schema versions: routing, provenance, evidence-reference validation, repeat stability, token usage, latency, failures, and prompt-injection boundary behavior. It is not a claim of general security accuracy or vulnerability detection. Human precision review, cost calculation, and broader held-out/adversarial corpora remain separate work.
+The generated report is deliberately not an accuracy score. It supports claims only about these ten frozen held-out pairs and the recorded model/prompt/schema versions: routing, provenance, evidence-reference validation, repeat stability, token usage, latency, failures, and prompt-injection boundary behavior. It is not a claim of general security accuracy or vulnerability detection. At the time of freeze, no API-backed result has been recorded; the 30-run operational gate and human review remain outstanding. Cost calculation and broader expert/adversarial corpora remain separate work.
 
 ## Full-system replay gate
 
