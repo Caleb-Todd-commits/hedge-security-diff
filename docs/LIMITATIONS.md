@@ -13,3 +13,4 @@
 - The public dashboard is a recorded deterministic artifact for no-install judging; it does not claim to be the output of a live GitHub or GPT-5.6 run.
 - The current risk ID allocator is stable against the committed register; brand-new uncommitted findings can be renumbered if the set/order of simultaneous new findings changes before merge. Semantic graph identities are line-independent, but structural refactors can still legitimately alter them.
 - Hedge does not replace SAST, DAST, dependency scanning, secrets scanning, penetration testing, architecture review, or human judgment.
+- The deadline build deliberately defers the full TypeScript Program, complete monorepo analysis, additional framework adapters, fork-PR broker, v1 configuration migration, hosted fleet views, Windows validation, and the large held-out expert corpus. These remain tracked in `docs/PRODUCT_MASTER_PLAN.md` rather than being implied by current behavior.

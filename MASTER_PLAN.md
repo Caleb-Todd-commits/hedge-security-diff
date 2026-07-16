@@ -1,5 +1,7 @@
 # HEDGE — OpenAI Build Week Master Plan
 
+> Current planning documents: [`docs/DEADLINE_PLAN.md`](docs/DEADLINE_PLAN.md) is the deadline-locked execution contract, and [`docs/PRODUCT_MASTER_PLAN.md`](docs/PRODUCT_MASTER_PLAN.md) preserves the complete post-deadline product roadmap. This historical master plan remains intact below.
+
 ## Thesis
 
 **One-liner:** Hedge is a GitHub Action that maintains an evidence-linked security architecture model of a TypeScript repository and shows the exact security delta introduced by each pull request.
