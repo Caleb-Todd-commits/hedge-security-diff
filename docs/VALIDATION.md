@@ -49,6 +49,7 @@ At packaging time:
 - The vulnerable witness returned `reproduced` before the fix.
 - The repaired witness returned `blocked-by-control` while the legitimate-behavior script still passed.
 - `npm run audit:high` completed against the public npm advisory service with **0 vulnerabilities** reported.
+- Hedge's own graph is regenerated with complete source coverage under the repository-specific one-megabyte budget; generated `dist/**` bundles remain covered by build and release checks rather than duplicate graph extraction.
 
 ## Claim boundary
 
