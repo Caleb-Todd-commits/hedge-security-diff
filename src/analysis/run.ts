@@ -12,6 +12,7 @@ import { analyzeWithCustomPolicies } from "./policies.js";
 import { analyzeSecurityInvariants } from "./invariants.js";
 import { buildInferences, buildObservations } from "./observations.js";
 import { buildDecisions } from "./decisions.js";
+import { deriveAnalysisHealth } from "./health.js";
 
 type AnalysisCore = Omit<
   AnalysisResult,
@@ -28,10 +29,35 @@ export interface RunAnalysisOptions {
     triage?: TriageRunResult;
     analysis?: ModelRunResult;
   };
+  coverage?: AnalysisResult["coverage"];
+  healthReasons?: string[];
+}
+
+/** Recompute derived layers after lifecycle IDs/statuses are merged from trusted state. */
+export function rebuildAnalysisLayers(
+  analysis: AnalysisResult,
+  findings: RiskFinding[],
+  delta: GraphDelta,
+  config: HedgeConfig
+): AnalysisResult {
+  const invariantEvaluations = analysis.invariantEvaluations ?? [];
+  const observations = buildObservations(delta, invariantEvaluations);
+  const inferences = buildInferences(findings, observations, analysis.model);
+  const decisions = buildDecisions(
+    findings,
+    invariantEvaluations,
+    observations,
+    inferences,
+    config.fail_on,
+    analysis.analysisHealth
+  );
+  return { ...analysis, findings, observations, inferences, decisions };
 }
 
 export async function runAnalysis(options: RunAnalysisOptions): Promise<AnalysisResult> {
-  const invariantAnalysis = analyzeSecurityInvariants(options.delta, options.config.invariants);
+  const invariantAnalysis = analyzeSecurityInvariants(options.delta, options.config.invariants, {
+    coverage: options.coverage ?? options.graph.coverage
+  });
   const deterministicFindings = mergeByFingerprint(
     mergeByFingerprint(
       analyzeWithHeuristics(options.delta, options.graph),
@@ -97,7 +123,8 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
   if (!triage.deepAnalysisRequired && !forcedDeepAnalysis) {
     return finalizeAnalysis(
       {
-        summary: triage.reason,
+        summary:
+          "A security architecture delta was detected, but deterministic rules did not surface a concrete risk and deep model analysis was not required.",
         surfaceChanged: true,
         findings: deterministicFindings,
         integrity: {
@@ -132,15 +159,19 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
       invariantAnalysis.evaluations
     );
   }
+  const evidenceLinkedFindings = mergeByFingerprint(deterministicFindings, modelResult.findings);
   return finalizeAnalysis(
     {
-      summary: modelResult.summary,
+      summary: evidenceLinkedFindings.length
+        ? `Hedge surfaced ${evidenceLinkedFindings.length} evidence-linked risk(s) across deterministic analysis and validated model inference.`
+        : "A security architecture delta was detected, but no evidence-linked design risk was surfaced.",
       surfaceChanged: true,
-      findings: mergeByFingerprint(deterministicFindings, modelResult.findings),
+      findings: evidenceLinkedFindings,
       integrity: {
-        ...modelResult.integrity,
+        untrustedInstructionsObserved: modelResult.integrity.untrustedInstructionsObserved,
+        analysisBoundaryHeld: modelResult.integrity.analysisBoundaryHeld,
         notes: [
-          ...modelResult.integrity.notes,
+          "Model output passed schema, instruction-boundary, and exact evidence-reference validation; free-form model summary text was not published.",
           ...(forcedDeepAnalysis && !triage.deepAnalysisRequired
             ? [
                 "Deep analysis was enforced by deterministic graph-delta policy despite the triage result."
@@ -148,7 +179,12 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
             : [])
         ]
       },
-      limitations: modelResult.limitations,
+      limitations:
+        modelResult.rejectedProposalCount && modelResult.rejectedProposalCount > 0
+          ? [
+              `${modelResult.rejectedProposalCount} model proposal(s) were omitted because their scope or evidence did not resolve exactly.`
+            ]
+          : [],
       model: modelResult.model,
       usage: sumUsage(triageRun.usage, modelResult.usage)
     },
@@ -162,6 +198,12 @@ function finalizeAnalysis(
   options: RunAnalysisOptions,
   invariantEvaluations: ReturnType<typeof analyzeSecurityInvariants>["evaluations"]
 ): AnalysisResult {
+  const coverage = options.coverage ?? options.graph.coverage;
+  const analysisHealth = deriveAnalysisHealth(coverage, {
+    modelDegraded: result.model?.includes("fallback") ?? false,
+    modelReason: result.limitations.find((limitation) => /model|GPT/i.test(limitation)),
+    reasons: options.healthReasons
+  });
   const observations = buildObservations(options.delta, invariantEvaluations);
   const inferences = buildInferences(result.findings, observations, result.model);
   const decisions = buildDecisions(
@@ -169,10 +211,14 @@ function finalizeAnalysis(
     invariantEvaluations,
     observations,
     inferences,
-    options.config.fail_on
+    options.config.fail_on,
+    analysisHealth
   );
   return {
     ...result,
+    confirmedNoDelta: false,
+    coverage,
+    analysisHealth,
     observations,
     inferences,
     decisions,

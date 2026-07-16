@@ -6,14 +6,25 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  security-events: write
+
+concurrency:
+  group: hedge-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  hedge:
+  collect:
     # Build Week scope: same-repository pull requests only.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      surface_changed: ${{ steps.hedge.outputs.surface-changed }}
+      confirmed_no_delta: ${{ steps.hedge.outputs.confirmed-no-delta }}
+      coverage_status: ${{ steps.hedge.outputs.coverage-status }}
+      analysis_status: ${{ steps.hedge.outputs.analysis-status }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -21,19 +32,124 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # Pin the published action to an immutable commit. Hedge reads policy,
-      # context, and baseline state from the trusted base SHA through the API.
-      - id: hedge
+      # Secretless: exact object bytes are collected and analyzed as data. No
+      # target repository command or package lifecycle script is executed.
+      - name: Collect exact base/head architecture evidence
+        id: hedge
         uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
         with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          command: collect
           github-token: ${{ github.token }}
+          base-ref: ${{ github.event.pull_request.base.sha }}
+          head-ref: ${{ github.event.pull_request.head.sha }}
+          offline: true
+          dry-run: true
+          collection-path: ${{ runner.temp }}/hedge-collection/collection.json
+          collection-manifest-path: ${{ runner.temp }}/hedge-collection/collection-manifest.json
+          workflow-ref: ${{ github.workflow_ref }}
+          workflow-sha: ${{ github.workflow_sha }}
+          action-ref: YOUR_ORG/hedge@PINNED_COMMIT_SHA
 
-      - name: Upload Hedge dashboard and machine reports
+      - name: Upload integrity-bound collection
+        uses: actions/upload-artifact@v7
+        with:
+          name: hedge-collection-${{ github.run_id }}
+          path: |
+            ${{ steps.hedge.outputs.collection-path }}
+            ${{ steps.hedge.outputs.collection-manifest-path }}
+          if-no-files-found: error
+          retention-days: 2
+
+  reason:
+    needs: collect
+    if: needs.collect.result == 'success' && needs.collect.outputs.surface_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # No checkout and no GitHub authority. The only secret is the model key.
+    permissions: {}
+    outputs:
+      coverage_status: ${{ steps.hedge.outputs.coverage-status }}
+      analysis_status: ${{ steps.hedge.outputs.analysis-status }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: hedge-collection-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-collection
+
+      - name: Reason over the validated bounded bundle
+        id: hedge
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: reason
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          base-ref: ${{ github.event.pull_request.base.sha }}
+          head-ref: ${{ github.event.pull_request.head.sha }}
+          collection-path: ${{ runner.temp }}/hedge-collection/collection.json
+          collection-manifest-path: ${{ runner.temp }}/hedge-collection/collection-manifest.json
+          reason-bundle-path: ${{ runner.temp }}/hedge-reason/reason.json
+          run-manifest-path: ${{ runner.temp }}/hedge-reason/run-manifest.json
+          workflow-ref: ${{ github.workflow_ref }}
+          workflow-sha: ${{ github.workflow_sha }}
+          action-ref: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+
+      - name: Upload validated reasoning bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: hedge-reason-${{ github.run_id }}
+          path: |
+            ${{ steps.hedge.outputs.reason-bundle-path }}
+            ${{ steps.hedge.outputs.run-manifest-path }}
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    needs: [collect, reason]
+    if: >-
+      always() &&
+      needs.collect.result == 'success' &&
+      (needs.collect.outputs.surface_changed != 'true' || needs.reason.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # No checkout and no OpenAI credential. This job alone may write the report.
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+    steps:
+      - name: Download immutable collection
+        uses: actions/download-artifact@v8
+        with:
+          name: hedge-collection-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-collection
+
+      - name: Download reasoned run
+        if: needs.collect.outputs.surface_changed == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: hedge-reason-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-reason
+
+      - name: Validate bindings, recheck head, and publish
+        id: hedge
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: publish
+          github-token: ${{ github.token }}
+          base-ref: ${{ github.event.pull_request.base.sha }}
+          head-ref: ${{ github.event.pull_request.head.sha }}
+          collection-path: ${{ runner.temp }}/hedge-collection/collection.json
+          collection-manifest-path: ${{ runner.temp }}/hedge-collection/collection-manifest.json
+          reason-bundle-path: ${{ runner.temp }}/hedge-reason/reason.json
+          run-manifest-path: ${{ runner.temp }}/hedge-reason/run-manifest.json
+          workflow-ref: ${{ github.workflow_ref }}
+          workflow-sha: ${{ github.workflow_sha }}
+          action-ref: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+
+      - name: Upload bounded reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: hedge-security-diff-${{ github.event.pull_request.number }}
+          name: hedge-security-diff-${{ github.event.pull_request.number }}-${{ github.run_id }}
           path: |
             ${{ steps.hedge.outputs.report-path }}
             ${{ steps.hedge.outputs.html-report-path }}
@@ -44,7 +160,10 @@ jobs:
           retention-days: 14
 
       - name: Publish SARIF to GitHub code scanning
-        if: always() && hashFiles('.hedge/results.sarif') != ''
+        # The Action sets analysis-path only after validation and the final
+        # stale-head check. A valid BLOCK may fail the Action afterwards, so
+        # key this upload to the validated output rather than step success.
+        if: always() && steps.hedge.outputs.analysis-path != '' && hashFiles('.hedge/results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: .hedge/results.sarif

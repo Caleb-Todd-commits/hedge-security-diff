@@ -15,13 +15,15 @@ This document records system facts source extraction cannot fully infer. The sam
 
 ```mermaid
 flowchart LR
-  PR[Untrusted PR title, body, diff, source, comments] --> API[Trusted GitHub API collector]
+  PR[Untrusted PR title, body, diff, source, comments] --> API[Secretless exact collector]
   BASE[Trusted base revision config, context, register] --> API
-  API --> GRAPH[Deterministic graph extractor]
-  GRAPH --> MODEL[GPT-5.6 structured analysis]
+  API --> GRAPH[Deterministic base/head graph extractor]
+  GRAPH --> MANIFEST[RunManifest-bound artifacts]
+  MANIFEST --> MODEL[No-checkout GPT-5.6 structured analysis]
   KEY[OpenAI credential] --> MODEL
   MODEL --> VALIDATE[Schema and evidence validation]
-  VALIDATE --> COMMENT[GitHub report]
+  VALIDATE --> PUB[No-key stale-head publisher]
+  PUB --> COMMENT[GitHub report]
   COMMENT --> APPROVE[Authorized maintainer command]
   APPROVE --> CODEX[Isolated Codex repair job]
   CODEX --> PATCH[Binary patch artifact]
@@ -58,10 +60,12 @@ flowchart LR
 **Implemented controls:**
 
 - `.hedge.yml`, `.hedge/context.yml`, and `threatmodel.json` are loaded from the trusted base commit through the GitHub API.
-- Absence of a trusted baseline produces an explicit empty baseline; Hedge never falls back to PR-head state.
+- Absence or invalidity of trusted register state triggers an exact base-graph rebuild; Hedge never compares with an empty graph or falls back to PR-head state.
 - PR patch evidence is fetched through the GitHub API and bounded by trusted base configuration.
 - The competition workflow is restricted to same-repository pull requests.
-- The secret-bearing analysis job does not build or execute pull-request code.
+- The secret-bearing reasoning job has no target checkout, target execution, or GitHub write authority.
+- Collection and publication have no OpenAI credential. RunManifest v0.1 binds every handoff to exact revisions, trusted inputs, exact workflow/Action commits, runtime schemas, coverage/health state, and artifact bytes.
+- Stage files are created exclusively below `runner.temp`. The publisher independently downloads the immutable collector artifact, so the model-bearing reasoning job cannot replace its evidence and recompute a self-consistent manifest.
 - Verification has no OpenAI credential or repository-write token.
 - Remediation transfers a binary patch from the Codex job to a separate publisher job.
 
@@ -117,6 +121,7 @@ flowchart LR
 - Generated-state refresh is proposed through a reviewable pull request.
 - Atomic writes prevent interrupted local refreshes from leaving partial JSON.
 - A versioned digest covers the graph, findings, run history, verification, and accepted-risk records.
+- Any full-register digest failure invalidates the entire register, including lifecycle, acceptance, verification, IDs, and graph.
 - Machine-readable remediation payloads are bound to the exact analyzed PR head and a payload digest.
 
 **Residual risk:** The digest is tamper-evident but not externally signed; a fully compromised trusted base branch can replace both state and digest.

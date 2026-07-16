@@ -5,8 +5,11 @@ import { z } from "zod";
 import {
   AnalysisResultSchema,
   AttackSurfaceGraphSchema,
+  CollectionBundleSchema,
   HedgeConfigSchema,
   HedgeContextSchema,
+  RunManifestSchema,
+  ReasonBundleSchema,
   SecurityInvariantDefinitionSchema,
   ThreatRegisterSchema,
   VerificationEvidenceSchema
@@ -19,6 +22,9 @@ const targets = {
   "hedge-context.schema.json": HedgeContextSchema,
   "verification-evidence.schema.json": VerificationEvidenceSchema,
   "analysis-result.schema.json": AnalysisResultSchema,
+  "run-manifest.schema.json": RunManifestSchema,
+  "collection-bundle.schema.json": CollectionBundleSchema,
+  "reason-bundle.schema.json": ReasonBundleSchema,
   "security-invariant.schema.json": SecurityInvariantDefinitionSchema
 };
 

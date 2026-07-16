@@ -76,7 +76,8 @@ export function detectControls(file: SourceFile): Control[] {
           extractor: "control-patterns"
         }
       ],
-      confidence: type === "ownership" || type === "authorization" ? 0.7 : 0.8
+      confidence: type === "ownership" || type === "authorization" ? 0.7 : 0.8,
+      assurance: "inferred"
     });
   }
 

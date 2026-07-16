@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileExists } from "../utils/fs.js";
 
@@ -16,10 +16,14 @@ export interface InstallResult {
 
 export async function installHedge(options: InstallOptions): Promise<InstallResult> {
   validateActionRef(options.actionRef);
+  const main = (await exampleWorkflow("hedge.yml")).replaceAll(
+    "YOUR_ORG/hedge@PINNED_COMMIT_SHA",
+    options.actionRef
+  );
   const files = new Map<string, string>([
     [".hedge.yml", configTemplate()],
     [".hedge/context.yml", contextTemplate()],
-    [".github/workflows/hedge.yml", mainWorkflow(options.actionRef)]
+    [".github/workflows/hedge.yml", main]
   ]);
   if (options.full) {
     files.set(
@@ -56,8 +60,8 @@ export async function installHedge(options: InstallOptions): Promise<InstallResu
 }
 
 function validateActionRef(value: string): void {
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[A-Za-z0-9_./-]+$/.test(value)) {
-    throw new Error("--action-ref must look like owner/repository@immutable-ref");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[a-f0-9]{40,64}$/.test(value)) {
+    throw new Error("--action-ref must be owner/repository@ followed by a full commit SHA");
   }
 }
 
@@ -96,58 +100,6 @@ authentication: []
 privileged_roles: []
 trusted_external_services: []
 notes: []
-`;
-}
-
-function mainWorkflow(actionRef: string): string {
-  return `name: Hedge security diff
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-  security-events: write
-
-jobs:
-  hedge:
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: \${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-
-      - id: hedge
-        uses: ${actionRef}
-        with:
-          openai-api-key: \${{ secrets.OPENAI_API_KEY }}
-          github-token: \${{ github.token }}
-
-      - name: Upload Hedge dashboard and machine reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: hedge-security-diff-\${{ github.event.pull_request.number }}
-          path: |
-            \${{ steps.hedge.outputs.report-path }}
-            \${{ steps.hedge.outputs.html-report-path }}
-            \${{ steps.hedge.outputs.sarif-path }}
-            \${{ steps.hedge.outputs.delta-path }}
-            \${{ steps.hedge.outputs.analysis-path }}
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Publish SARIF to GitHub code scanning
-        if: always() && hashFiles('.hedge/results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: .hedge/results.sarif
-          category: hedge-security-diff
 `;
 }
 
@@ -247,10 +199,45 @@ jobs:
 }
 
 async function exampleWorkflow(name: string): Promise<string> {
-  const source = resolve(process.cwd(), "examples", "workflows", name);
-  try {
-    return await readFile(source, "utf8");
-  } catch {
-    throw new Error(`Unable to locate bundled workflow template ${source}`);
+  const candidates: string[] = [];
+
+  // The bundled CommonJS CLI has a concrete module filename even when invoked
+  // through a package-manager shim.
+  if (typeof __filename === "string") {
+    candidates.push(resolve(dirname(__filename), "..", "workflows", name));
   }
+
+  // Published CLI bundles copy these assets beside dist/cli. Resolve the real
+  // executable first so global package-manager shims and symlinks still work.
+  if (process.argv[1]) {
+    try {
+      const executable = await realpath(process.argv[1]);
+      candidates.push(resolve(dirname(executable), "..", "workflows", name));
+      candidates.push(resolve(dirname(executable), "..", "..", "examples", "workflows", name));
+    } catch {
+      // A test runner or embedding process may not expose a resolvable argv[1].
+    }
+  }
+
+  // npm and ordinary source execution expose package-root candidates without
+  // coupling template loading to the caller's current working directory.
+  if (process.env.npm_package_json) {
+    candidates.push(resolve(dirname(process.env.npm_package_json), "examples", "workflows", name));
+  }
+  if (process.env.INIT_CWD) {
+    candidates.push(resolve(process.env.INIT_CWD, "examples", "workflows", name));
+  }
+  candidates.push(resolve(process.cwd(), "examples", "workflows", name));
+
+  for (const source of [...new Set(candidates)]) {
+    try {
+      return await readFile(source, "utf8");
+    } catch {
+      // Try the next package/source layout before reporting one bounded error.
+    }
+  }
+
+  throw new Error(
+    `Unable to locate bundled workflow template ${name}; checked ${candidates.length} package location(s).`
+  );
 }

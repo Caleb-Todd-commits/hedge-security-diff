@@ -45,21 +45,31 @@ The result reports:
 
 All 45 bundled cases pass with 100% on the metrics above. That result is intentionally narrow: the fixtures were written for the supported deterministic extractors and rules. It is **not** general vulnerability-detection accuracy.
 
-## API-backed evaluation still required
+## API-backed live evaluation
 
-Before submission claims about GPT-5.6, run repeated evaluations that measure:
+The live harness is ready, but it never runs implicitly. It requires both an explicit opt-in and an OpenAI API key, and it refuses to start when a GitHub or GitHub Actions token is present. Set the API key through the shell or secret manager without placing it in a command argument, then run from a credential-isolated shell:
 
-- Evidence-reference validity.
-- Risk precision under human review.
-- Stability across repeated runs.
-- Luna escalation rate.
-- Median and P95 input/output tokens.
-- Median and P95 latency.
-- Median and P95 estimated cost.
-- Injection-boundary behavior.
-- Unsupported or omitted claims.
+```bash
+export OPENAI_API_KEY
+HEDGE_LIVE_EVAL=1 npm run eval:live
+```
 
-Record raw results, model IDs, date, prompt/schema versions, and failures. Do not collapse unlike metrics into one “accuracy” number.
+The default is exactly three repetitions of the ten representative before/after pairs listed in `eval/live-eval-cases.json`. These reuse deterministic development fixtures and are explicitly classified `representative-not-held-out`; the machine result records `heldOutGateCompleted: false`. A genuinely frozen held-out corpus remains an uncompleted external gate and must be run before any held-out-performance claim. To make a bounded diagnostic run, set `HEDGE_LIVE_EVAL_REPEATS` to an integer from 1 through 5. Results default to `eval/live-results/results.json` and `eval/live-results/results.md`; `HEDGE_LIVE_EVAL_OUTPUT_DIR` can select another directory.
+
+The harness:
+
+- Builds deterministic base and head graphs from the selected fixture trees and binds every source observation to an exact synthetic SHA-256 revision.
+- Computes comparison coverage from both revisions. A no-delta pair is `confirmed-no-delta` only with complete comparison coverage; partial or unsupported no-delta runs remain unconfirmed and still make no model request.
+- Creates a bounded untrusted patch (60,000 bytes maximum) and uses Hedge's configured Luna triage and Sol analysis route.
+- Adds a fixed, typed synthetic instruction-boundary probe to the delta-bearing `006-public-secret-boundary` patch. The probe is recorded in provenance and exercises the model path without changing fixture source or graph provenance.
+- Records each route, exact-evidence validation and rejected-proposal counts, normalized finding and recorded-decision signatures, input/output tokens, latency, API/model failures, and instruction-boundary state.
+- Records the timestamp plus Hedge, extractor, prompt, pipeline-schema, model-output-schema, and model versions.
+- Stops issuing model requests immediately if Sol reports that the untrusted-data boundary did not hold. Ordinary API/model failures are recorded and make the operational gate fail, but provider error prose is not persisted because it can echo request data.
+- Writes bounded artifacts containing hashes, counts, enum values, model IDs, and sanitized fixed failure descriptions. It does not write the API key, source text, patch text, prompts, model prose, or raw sensitive content.
+
+Unit tests use an injected fake runner and make no network requests. They cover opt-in and credential isolation, ten-case aggregation, stability, exact synthetic provenance, the delta-bearing boundary probe, fail-closed boundary behavior, honest no-delta coverage semantics, and credential non-persistence.
+
+The generated report is deliberately not an accuracy score. It supports claims only about these ten fixed representative pairs and the recorded model/prompt/schema versions: routing, provenance, evidence-reference validation, repeat stability, token usage, latency, failures, and prompt-injection boundary behavior. It is not a claim of general security accuracy or vulnerability detection. Human precision review, cost calculation, and broader held-out/adversarial corpora remain separate work.
 
 ## Full-system replay gate
 

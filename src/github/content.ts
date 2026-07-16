@@ -21,6 +21,13 @@ export interface TrustedPullRequestState {
   patch: string;
   patchTruncated: boolean;
   patchFiles: string[];
+  coverageDiagnostics: Array<{
+    code: string;
+    phase: "patch";
+    message: string;
+    file?: string;
+    snapshot?: "head";
+  }>;
   warnings: string[];
 }
 
@@ -75,34 +82,16 @@ export async function loadTrustedPullRequestState(options: {
   });
   let register: ThreatRegister | undefined;
   if (registerText !== undefined) {
-    try {
-      register = ThreatRegisterSchema.parse(JSON.parse(registerText) as unknown);
-      const integrityWarnings = validateThreatRegisterIntegrity(register);
-      if (integrityWarnings.length) {
-        warnings.push(
-          `The trusted base threatmodel.json failed its integrity digest and its graph was ignored: ${integrityWarnings.join(" ")}`
-        );
-        register = { ...register, graph: undefined, stateIntegrity: undefined };
-      } else {
-        const bindingWarnings = validateThreatRegisterBindings(register, {
-          config,
-          context,
-          sourceCommit: options.baseSha
-        });
-        if (bindingWarnings.length) {
-          warnings.push(
-            `The trusted baseline may be stale and should be refreshed after this review: ${bindingWarnings.join(" ")}`
-          );
-        }
-      }
-    } catch (error) {
-      warnings.push(
-        `The trusted base threatmodel.json could not be parsed and was ignored: ${(error as Error).message}`
-      );
-    }
+    const parsedRegister = parseTrustedThreatRegisterText(registerText, {
+      config,
+      context,
+      baseSha: options.baseSha
+    });
+    register = parsedRegister.register;
+    warnings.push(...parsedRegister.warnings);
   } else {
     warnings.push(
-      "No threatmodel.json existed on the trusted base revision; this PR is compared with an empty baseline."
+      "No threatmodel.json existed on the trusted base revision; lifecycle state is unavailable and the exact base graph will be rebuilt from source."
     );
   }
 
@@ -120,17 +109,43 @@ export async function loadTrustedPullRequestState(options: {
   }
 
   const pieces: string[] = [];
+  const coverageDiagnostics: TrustedPullRequestState["coverageDiagnostics"] = [];
   let bytes = 0;
   let patchTruncated = files.length > selected.length;
+  if (files.length > selected.length) {
+    coverageDiagnostics.push({
+      code: "patch-file-limit-exceeded",
+      phase: "patch",
+      snapshot: "head",
+      message: `${files.length - selected.length} changed file patch(es) exceeded the trusted file budget.`
+    });
+  }
   for (const file of selected) {
     const header = `diff --git a/${file.filename} b/${file.filename}\n--- a/${file.previous_filename ?? file.filename}\n+++ b/${file.filename}\n`;
     const body = file.patch ?? `[patch unavailable for ${file.status} file]\n`;
+    if (file.patch === undefined) {
+      patchTruncated = true;
+      coverageDiagnostics.push({
+        code: "patch-unavailable",
+        phase: "patch",
+        snapshot: "head",
+        file: file.filename,
+        message: `GitHub did not provide a bounded patch for this ${file.status ?? "changed"} file.`
+      });
+    }
     const piece = `${header}${body}\n`;
     const size = Buffer.byteLength(piece, "utf8");
     if (bytes + size > config.limits.max_bytes) {
       const remaining = Math.max(0, config.limits.max_bytes - bytes);
       if (remaining > 0) pieces.push(truncateUtf8(piece, remaining));
       patchTruncated = true;
+      coverageDiagnostics.push({
+        code: "patch-byte-limit-exceeded",
+        phase: "patch",
+        snapshot: "head",
+        file: file.filename,
+        message: "PR patch evidence exceeded the trusted byte budget."
+      });
       break;
     }
     pieces.push(piece);
@@ -144,8 +159,44 @@ export async function loadTrustedPullRequestState(options: {
     patch: pieces.join(""),
     patchTruncated,
     patchFiles: selected.map((file) => file.filename),
+    coverageDiagnostics,
     warnings
   };
+}
+
+export function parseTrustedThreatRegisterText(
+  text: string,
+  bindings: { config: HedgeConfig; context: HedgeContext; baseSha: string }
+): { register?: ThreatRegister; warnings: string[] } {
+  const warnings: string[] = [];
+  try {
+    const raw = JSON.parse(text) as unknown;
+    const register = ThreatRegisterSchema.parse(raw);
+    const integrityWarnings = validateThreatRegisterIntegrity(register, { raw });
+    if (integrityWarnings.length) {
+      warnings.push(
+        `The trusted base threatmodel.json failed its full-register integrity digest and the entire register was ignored: ${integrityWarnings.join(" ")}`
+      );
+      return { warnings };
+    }
+
+    const bindingWarnings = validateThreatRegisterBindings(register, {
+      config: bindings.config,
+      context: bindings.context,
+      sourceCommit: bindings.baseSha
+    });
+    if (bindingWarnings.length) {
+      warnings.push(
+        `The trusted baseline may be stale and should be refreshed after this review: ${bindingWarnings.join(" ")}`
+      );
+    }
+    return { register, warnings };
+  } catch (error) {
+    warnings.push(
+      `The trusted base threatmodel.json could not be parsed and was ignored: ${(error as Error).message}`
+    );
+    return { warnings };
+  }
 }
 
 export interface PullRequestFileLike {

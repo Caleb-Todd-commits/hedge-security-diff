@@ -13,7 +13,11 @@ import { stableHash } from "../utils/hash.js";
 import { loadHedgeContext } from "../config/context.js";
 import type { HedgeContext } from "../domain/schemas.js";
 import { lineNumberAt, lineSnippet } from "../utils/lines.js";
-import { collectSourceFileInventory, type SourceFile } from "./files.js";
+import {
+  collectSourceFileInventory,
+  type SourceCollectionResult,
+  type SourceFile
+} from "./files.js";
 import { detectFramework } from "./framework.js";
 import { redactSensitiveContent } from "../security/untrusted.js";
 import {
@@ -32,21 +36,38 @@ export interface BuildGraphOptions {
   config: HedgeConfig;
   repository?: string;
   context?: HedgeContext;
+  sourceInventory?: SourceCollectionResult;
+  sourceCommit?: string;
+  snapshot?: "base" | "head";
 }
 
 export async function buildAttackSurfaceGraph(
   options: BuildGraphOptions
 ): Promise<AttackSurfaceGraph> {
-  const [inventory, loadedContext] = await Promise.all([
-    collectSourceFileInventory(options.root, options.config),
+  const [rawInventory, loadedContext] = await Promise.all([
+    options.sourceInventory ?? collectSourceFileInventory(options.root, options.config),
     options.context ? Promise.resolve(options.context) : loadHedgeContext(options.root)
   ]);
+  const inventory: SourceCollectionResult = {
+    ...rawInventory,
+    files: rawInventory.files.map((file) => ({
+      ...file,
+      commit: file.commit ?? options.sourceCommit,
+      snapshot: file.snapshot ?? options.snapshot
+    }))
+  };
   const { files, stats: collectionStats } = inventory;
   const context = loadedContext;
   const framework = detectFramework(files, options.config);
   const nodes = new Map<string, SurfaceNode>();
   const edges = new Map<string, SurfaceEdge>();
   const unknowns: string[] = [];
+  const coverageDiagnostics: Array<{
+    code: string;
+    phase: "collection" | "parsing" | "framework" | "patch" | "analysis";
+    message: string;
+    file?: string;
+  }> = [];
   const filesByPath = new Map(files.map((file) => [file.path, file]));
   const astFacts = new Map(
     files
@@ -55,14 +76,17 @@ export async function buildAttackSurfaceGraph(
   );
   const nextMiddlewareRules = [...astFacts.values()].flatMap((facts) => facts.middlewareRules);
   for (const rule of nextMiddlewareRules) {
-    if (
-      rule.matchers.some(
-        (matcher) => matcher.includes("(") || matcher.includes("[") || matcher.includes("{")
-      )
-    ) {
+    if (rule.matcherStatus === "unknown") {
       unknowns.push(
         `Complex Next.js middleware matcher in ${rule.sourcePath} was not used to assert route protection.`
       );
+      coverageDiagnostics.push({
+        code: "unsupported-dynamic-matcher",
+        phase: "framework",
+        file: rule.sourcePath,
+        message:
+          "A complex Next.js middleware matcher could not be used to confirm route protection."
+      });
     }
   }
 
@@ -76,13 +100,52 @@ export async function buildAttackSurfaceGraph(
       const facts = astFacts.get(file.path) ?? extractTypeScriptFacts(file, framework);
       for (const diagnostic of facts.parseDiagnostics.slice(0, 2)) {
         unknowns.push(`Parser diagnostic in ${file.path}: ${diagnostic}`);
+        coverageDiagnostics.push({
+          code: "typescript-parser-diagnostic",
+          phase: "parsing",
+          file: file.path,
+          message: diagnostic
+        });
+      }
+      if (
+        /(^|\/)app\/.*\/route\.[cm]?[jt]sx?$/.test(file.path) &&
+        facts.entrypoints.length === 0 &&
+        /\bexport\b[\s\S]*\b(?:GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b/.test(file.content) &&
+        /\b(?:import|from)\b/.test(file.content)
+      ) {
+        unknowns.push(
+          `Imported or re-exported route handler in ${file.path} could not be resolved without cross-file program analysis.`
+        );
+        coverageDiagnostics.push({
+          code: "unresolved-imported-route-handler",
+          phase: "analysis",
+          file: file.path,
+          message:
+            "An imported or re-exported route handler could not be resolved by the bounded same-file analyzer."
+        });
+      }
+      for (const entrypoint of facts.entrypoints) {
+        for (const control of entrypoint.controls.filter(
+          (candidate) => candidate.assurance === "inferred" || candidate.assurance === "unknown"
+        )) {
+          coverageDiagnostics.push({
+            code: "unresolved-control-helper",
+            phase: "analysis",
+            file: file.path,
+            message: `Control ${control.label} could not be confirmed semantically because its helper or wrapper was unresolved.`
+          });
+        }
       }
       for (const secret of facts.allSecrets) addSecretNode(file, secret, nodes);
       for (const entrypoint of facts.entrypoints) {
         const inheritedControls =
           entrypoint.framework === "nextjs"
             ? nextMiddlewareRules
-                .filter((rule) => nextMiddlewareMatchesPath(rule.matchers, entrypoint.path))
+                .filter(
+                  (rule) =>
+                    rule.matcherStatus !== "unknown" &&
+                    nextMiddlewareMatchesPath(rule.matchers, entrypoint.path)
+                )
                 .flatMap((rule) => rule.controls)
             : [];
         addAstEntrypoint(
@@ -105,24 +168,79 @@ export async function buildAttackSurfaceGraph(
     );
   }
 
+  if (framework === "unknown") {
+    coverageDiagnostics.push({
+      code: "unsupported-framework",
+      phase: "framework",
+      message: "No supported Next.js or Express framework could be confirmed."
+    });
+  }
+
   if (collectionStats.omittedByFileLimit || collectionStats.omittedByByteLimit) {
     unknowns.push(
       `Analysis coverage was bounded: ${collectionStats.includedFiles}/${collectionStats.discoveredFiles} candidate files (${collectionStats.includedBytes} bytes) were inspected; ${collectionStats.omittedByFileLimit} exceeded the file limit and ${collectionStats.omittedByByteLimit} exceeded the byte budget.`
     );
+    if (collectionStats.omittedByFileLimit) {
+      coverageDiagnostics.push({
+        code: "file-limit-exceeded",
+        phase: "collection",
+        message: `${collectionStats.omittedByFileLimit} candidate file(s) exceeded the configured file limit.`
+      });
+    }
+    if (collectionStats.omittedByByteLimit) {
+      coverageDiagnostics.push({
+        code: "byte-limit-exceeded",
+        phase: "collection",
+        message: `${collectionStats.omittedByByteLimit} candidate file(s) exceeded the configured byte budget.`
+      });
+    }
   }
   if (collectionStats.omittedUnsafeOrUnreadable || collectionStats.omittedBinary) {
     unknowns.push(
       `Analysis skipped ${collectionStats.omittedUnsafeOrUnreadable} unsafe or unreadable path(s) and ${collectionStats.omittedBinary} binary-looking file(s).`
     );
+    if (collectionStats.omittedUnsafeOrUnreadable) {
+      coverageDiagnostics.push({
+        code: "unsafe-or-unreadable-path",
+        phase: "collection",
+        message: `${collectionStats.omittedUnsafeOrUnreadable} unsafe or unreadable path(s) were omitted.`
+      });
+    }
+    if (collectionStats.omittedBinary) {
+      coverageDiagnostics.push({
+        code: "binary-file-omitted",
+        phase: "collection",
+        message: `${collectionStats.omittedBinary} binary-looking file(s) were omitted.`
+      });
+    }
   }
 
   return {
     schemaVersion: "0.1",
     generatedAt: new Date().toISOString(),
     repository: options.repository ?? "local",
+    sourceCommit: options.sourceCommit,
     framework,
-    nodes: [...nodes.values()].sort((a, b) => a.id.localeCompare(b.id)),
-    edges: [...edges.values()].sort((a, b) => a.id.localeCompare(b.id)),
+    nodes: [...nodes.values()]
+      .map((node) => ({
+        ...node,
+        evidence: node.evidence.map((evidence) => ({ ...evidence, subjectId: node.id })),
+        controls: node.controls.map((control) => ({
+          ...control,
+          evidence: control.evidence.map((evidence) => ({ ...evidence, subjectId: node.id }))
+        }))
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    edges: [...edges.values()]
+      .map((edge) => ({
+        ...edge,
+        evidence: edge.evidence.map((evidence) => ({ ...evidence, subjectId: edge.id })),
+        controls: edge.controls.map((control) => ({
+          ...control,
+          evidence: control.evidence.map((evidence) => ({ ...evidence, subjectId: edge.id }))
+        }))
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
     assumptions: [
       ...contextAssumptions(context),
       "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
@@ -130,7 +248,25 @@ export async function buildAttackSurfaceGraph(
       "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
       `Repository evidence coverage: ${collectionStats.includedFiles}/${collectionStats.discoveredFiles} candidate files and ${collectionStats.includedBytes} bytes analyzed.`
     ],
-    unknowns: [...new Set([...unknowns, ...contextUnknowns(context)])]
+    unknowns: [...new Set([...unknowns, ...contextUnknowns(context)])],
+    coverage: {
+      status:
+        framework === "unknown"
+          ? "unsupported"
+          : coverageDiagnostics.length
+            ? "partial"
+            : "complete",
+      discoveredFiles: collectionStats.discoveredFiles,
+      includedFiles: collectionStats.includedFiles,
+      includedBytes: collectionStats.includedBytes,
+      omitted: {
+        fileLimit: collectionStats.omittedByFileLimit,
+        byteLimit: collectionStats.omittedByByteLimit,
+        unsafeOrUnreadable: collectionStats.omittedUnsafeOrUnreadable,
+        binary: collectionStats.omittedBinary
+      },
+      diagnostics: coverageDiagnostics
+    }
   };
 }
 
@@ -289,7 +425,8 @@ function astControl(file: SourceFile, control: AstControl): Control {
     type: control.type,
     label: control.label,
     evidence: [makeEvidence(file, control.line, "typescript-ast-control")],
-    confidence: control.confidence
+    confidence: control.confidence,
+    assurance: control.assurance ?? "confirmed"
   };
 }
 
@@ -335,10 +472,8 @@ function analyzeActionMetadata(
       trustZone: "application",
       evidence: [
         {
-          file: file.path,
-          line: 1,
-          snippet: `name: ${metadata.name ?? "unknown"}`,
-          extractor: "github-action-metadata"
+          ...makeEvidence(file, 1, "github-action-metadata"),
+          snippet: `name: ${metadata.name ?? "unknown"}`
         }
       ],
       controls: [],
@@ -350,9 +485,8 @@ function analyzeActionMetadata(
       const secretId = `secret:action-input:${inputName}`;
       const evidence = [
         {
-          file: file.path,
-          snippet: `${inputName}: ${input.description ?? "privileged input"}`,
-          extractor: "github-action-metadata"
+          ...makeEvidence(file, 1, "github-action-metadata"),
+          snippet: `${inputName}: ${input.description ?? "privileged input"}`
         }
       ];
       nodes.set(secretId, {
@@ -536,7 +670,7 @@ function analyzePackage(file: SourceFile, nodes: Map<string, SurfaceNode>): void
         kind: "dependency",
         label: `${name}@${version}`,
         trustZone: "external",
-        evidence: [{ file: file.path, extractor: "package-extractor" }],
+        evidence: [makeEvidence(file, 1, "package-extractor")],
         controls: [],
         metadata: { name, version }
       });
@@ -610,7 +744,9 @@ function makeEvidence(file: SourceFile, line: number, extractor: string): Eviden
     file: file.path,
     line,
     snippet: redactSensitiveContent(lineSnippet(file.content, line)).value,
-    extractor
+    extractor,
+    commit: file.commit,
+    snapshot: file.snapshot
   };
 }
 

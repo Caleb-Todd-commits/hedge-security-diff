@@ -45,4 +45,14 @@ describe("GitHub annotations", () => {
       )
     ).toHaveLength(5);
   });
+
+  it("bounds untrusted annotation text and neutralizes mentions", () => {
+    const large = finding("high");
+    large.title = `@maintainers ${"x".repeat(1_000)}`;
+    large.potentialImpact = "y".repeat(10_000);
+    const [annotation] = createFindingAnnotations([large]);
+    expect(annotation?.title.length).toBeLessThanOrEqual(240);
+    expect(annotation?.message.length).toBeLessThanOrEqual(4_000);
+    expect(annotation?.title).not.toContain("@maintainers");
+  });
 });

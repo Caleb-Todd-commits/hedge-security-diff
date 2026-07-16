@@ -1,6 +1,6 @@
 {
   "name": "hedge-action",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Evidence-linked security architecture diffs for pull requests.",
   "type": "module",
   "private": true,
@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "tsx src/eval/cli.ts",
+    "eval:live": "tsx src/eval/live-cli.ts",
     "build:action": "esbuild src/action/index.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist/action/index.cjs --packages=bundle --external:source-map-support",
     "build:cli": "esbuild src/cli/index.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/cli/index.cjs --packages=bundle --external:source-map-support",
     "build": "npm run clean && npm run typecheck && npm run test && npm run build:action && npm run build:cli && node scripts/postbuild.mjs",
@@ -26,6 +27,7 @@
     "validate:release": "bash scripts/validate-release.sh",
     "audit:high": "npm audit --audit-level=high",
     "validate:demo": "bash scripts/validate-demo.sh",
+    "demo:generate": "bash scripts/generate-demo-output.sh",
     "schemas": "tsx scripts/generate-schemas.ts",
     "replay": "tsx src/cli/index.ts replay"
   },
@@ -37,6 +39,7 @@
     "@actions/github": "^9.1.1",
     "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
+    "micromatch": "^4.0.8",
     "openai": "^6.46.0",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"

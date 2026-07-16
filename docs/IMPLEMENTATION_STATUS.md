@@ -27,15 +27,15 @@
 | Codex remediation handoff                 | Implemented workflow            | authorized comment, isolated Codex job, patch-only handoff, draft PR                     |
 | Counterfactual verification               | Implemented workflow            | vulnerable/repaired/legitimate checks and state PR                                       |
 | Risk acceptance                           | Implemented workflow            | authorized reason, actor/time record, state PR                                           |
-| Proof bundle                              | Working                         | copied artifacts, SHA-256 manifest, `verify-bundle`                                      |
+| Proof bundle                              | Working                         | SHA-256 manifest plus graph/register/source coherence                                    |
 | Public JSON Schemas                       | Generated                       | `schemas/*.schema.json`                                                                  |
 | DriftBench                                | 45 cases pass                   | `eval/results.md`, `eval/results.json`                                                   |
-| Unit/contract/schema tests                | 121 pass                        | `npm test`                                                                               |
+| Unit/contract/replay/schema tests         | 226 pass                        | `npm test`                                                                               |
 | Demo repository                           | Working generator               | prepared branches and executable witness                                                 |
 
 ## Implemented but not live-validated here
 
-The packaged GitHub Action is invoked by a GitHub-hosted self-test without an OpenAI key. The approval-gated Codex remediation and verification workflows still require a target pull request, repository permissions, and OpenAI credentials. Their local contracts and security boundaries are tested, but this package does not claim that a remote Codex remediation PR has already been opened or that production precision/cost has been measured.
+The prior published v0.5.1 Action is invoked by a GitHub-hosted self-test without an OpenAI key. This v0.5.2 candidate is validated locally and still needs its own hosted smoke test. The approval-gated Codex remediation and verification workflows require a target pull request, repository permissions, and OpenAI credentials. Their local contracts and security boundaries are tested, but this package does not claim that a remote Codex remediation PR has already been opened or that production precision/cost has been measured.
 
 ## Deliberately limited
 

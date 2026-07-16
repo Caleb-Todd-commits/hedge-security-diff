@@ -11,7 +11,11 @@ export function analyzeWithCustomPolicies(
   for (const policy of policies) {
     for (const node of candidates) {
       if (!matches(node, policy)) continue;
-      const controls = new Set(node.controls.map((control) => control.type));
+      const controls = new Set(
+        node.controls
+          .filter((control) => control.assurance === "trusted" || control.assurance === "confirmed")
+          .map((control) => control.type)
+      );
       const missing = policy.require_controls.filter((control) => !controls.has(control));
       if (!missing.length) continue;
       const now = new Date().toISOString();

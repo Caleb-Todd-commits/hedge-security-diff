@@ -27,10 +27,12 @@ On `demo/01-file-upload-risk`:
 npm run test:hedge-witness
 ```
 
-The command exits successfully because the risky behavior is reproduced. On `demo/03-upload-remediation`, the same witness exits non-zero because the behavior is blocked, while:
+The command emits the structured outcome `reproduced`. On `demo/03-upload-remediation`, the identical witness bytes emit `blocked-by-control`, while:
 
 ```bash
 npm run test:hedge-legitimate
 ```
 
 continues to pass. This supports Hedge's verification lifecycle; it is not a claim that a test file alone proves remediation.
+
+The installed verification workflow sets `HEDGE_OUTCOME_PATH`; the witness writes the same newline-terminated JSON bytes to that file and stdout. Process crashes, malformed output, and generic nonzero exits remain inconclusive rather than being treated as proof that a control blocked the witness.

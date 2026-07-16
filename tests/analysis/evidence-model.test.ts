@@ -48,4 +48,38 @@ describe("observation, inference, and decision separation", () => {
     expect(result.decisions?.find((item) => item.source === "threshold")?.type).toBe("block");
     expect(result.observations?.every((item) => item.source === "deterministic")).toBe(true);
   });
+
+  it("does not publish unbound free-form model summary, limitation, or integrity prose", async () => {
+    const result = await runAnalysis({
+      graph,
+      delta,
+      patch: "",
+      config: HedgeConfigSchema.parse({ fail_on: "high" }),
+      recordedModel: {
+        triage: {
+          result: {
+            deepAnalysisRequired: true,
+            reason: "UNBOUND TRIAGE CLAIM",
+            categories: ["entrypoint"]
+          },
+          model: "recorded-triage"
+        },
+        analysis: {
+          findings: [],
+          summary: "UNBOUND MODEL SUMMARY",
+          limitations: ["UNBOUND MODEL LIMITATION"],
+          model: "recorded-analysis",
+          integrity: {
+            untrustedInstructionsObserved: false,
+            analysisBoundaryHeld: true,
+            notes: ["UNBOUND MODEL INTEGRITY NOTE"]
+          }
+        }
+      }
+    });
+
+    const published = JSON.stringify(result);
+    expect(published).not.toContain("UNBOUND");
+    expect(result.summary).toContain("evidence-linked risk");
+  });
 });

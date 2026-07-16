@@ -1,12 +1,13 @@
 {
   "schemaVersion": "0.1",
-  "generatedAt": "2026-07-15T01:09:46.095Z",
-  "repository": "hedge-demo-notes",
-  "baseRef": "main",
-  "headRef": "demo/01-file-upload-risk",
+  "generatedAt": "2026-07-16T07:07:05.192Z",
+  "repository": "local",
+  "baseRef": "d3e2dddd94234f2bc26de25a7d12be72fe890b75",
+  "headRef": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
   "state": {
-    "graphHash": "e02083e24d74a273865d3c45c760d75e6c84a8dda1e7d607160b4c4ba471463e",
-    "registerHash": "dc3486dcacbb192de7ef93ca27f994519d340317b7296c4b3239abfbc08bab9a",
+    "graphHash": "f7685cfa91a5d7a42f22475dd3997f374d96e0ce3536869051aa10d501e49cee",
+    "registerHash": "6be23e5bd8906d5713c599e49222ecc92a8ad788dd3d19b68aea8c4ab3b9661f",
+    "sourceCommit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
     "configHash": "5aeaed89b31c14dafcb7f74a1c2c7cac01621e07030296261c8cf00b7f2b4d8a"
   },
   "riskSummary": {
@@ -20,56 +21,56 @@
     {
       "source": ".hedge/report.md",
       "bundledAs": "artifacts/hedge__report.md",
-      "sha256": "976a48c77afad27b3ea1b7af25b88129a3606c6674bda5ee50647143e80828bf",
-      "bytes": 8240
+      "sha256": "bc6d3fba7b42a2938ee31cc44fd40a17e16e100aba571a01da3815910c89aad1",
+      "bytes": 9547
     },
     {
       "source": ".hedge/report.html",
       "bundledAs": "artifacts/hedge__report.html",
-      "sha256": "27aa9b2fd1cc210abaa6241615b078f67f876886ae78ebd8ef59f1f3ccc235a6",
-      "bytes": 47897
+      "sha256": "579d6bc72697b3c4d7e2a24fa94605e6d23eb4f74daf484f13e1a409d4d5c22c",
+      "bytes": 64299
     },
     {
       "source": ".hedge/results.sarif",
       "bundledAs": "artifacts/hedge__results.sarif",
-      "sha256": "0dc2087eff54bea500ce4a92a42504c978b7049a5cbb778101374ce56ba12425",
-      "bytes": 9974
+      "sha256": "c2baedc0ffa12437b48a8e1349cb47c676fd82f99ace7fea6a5d639bdcb0c1f1",
+      "bytes": 10074
     },
     {
       "source": ".hedge/delta.json",
       "bundledAs": "artifacts/hedge__delta.json",
-      "sha256": "d5d2a09ce8750e0e422b214fbdfd4b740d3a81fbcb710f2c4d9035c2699c9f8a",
-      "bytes": 2931
+      "sha256": "2a547328e1d727885b56ac01d84b55dcfba354adc0cb59ce98218da874d2e97f",
+      "bytes": 2182
     },
     {
       "source": ".hedge/analysis.json",
       "bundledAs": "artifacts/hedge__analysis.json",
-      "sha256": "1de7c0c1286b819a10a5811392c2d614a19b776f0c97efe33dd417a51930a3e4",
-      "bytes": 6225
+      "sha256": "2163385f92323cc453d1c0eb795c74c00f424eca792c690f1615ce2bc37f9745",
+      "bytes": 10937
     },
     {
       "source": ".hedge/graph.json",
       "bundledAs": "artifacts/hedge__graph.json",
-      "sha256": "8667e7e76b7a36ac9335fe3f98fa6e87b7a95b30d6618dbad00a88cef4f65bb9",
-      "bytes": 11749
+      "sha256": "22fa7ddf7fc2d596f75ffe5709b300fcaf76880952d22857674e22159d4dfb29",
+      "bytes": 22438
     },
     {
       "source": "THREATMODEL.md",
       "bundledAs": "artifacts/THREATMODEL.md",
-      "sha256": "cdff1f005bdb267750e4c0d9d5fb70104801344b8d2feefe885b954d072ca24c",
-      "bytes": 6339
+      "sha256": "6dcabe6f79c8c6b3efad186f980ca9bbba6bebf41dea1e0d4e0df39ab85ac910",
+      "bytes": 7158
     },
     {
       "source": "threatmodel.json",
       "bundledAs": "artifacts/threatmodel.json",
-      "sha256": "beeaef094369eaf0015c06b00be3d7aa7f723dc0101fd0b81004deedb8df31be",
-      "bytes": 22563
+      "sha256": "02e504e43e759d83d913771fcba4b993c82ceb6aee528e5541d58efcd61b001a",
+      "bytes": 31484
     }
   ],
+  "manifestDigest": "7fe6b5f0bf0f47e232dd1e51c63172917c9d5761da7ffe034e8d5b20689b14d8",
   "notes": [
     "The manifest is tamper-evident, not cryptographically signed.",
     "Configuration and reviewed context are represented by digests but are not copied into the bundle.",
     "Hedge surfaces architecture changes and design risks; it does not prove the absence of vulnerabilities."
-  ],
-  "manifestDigest": "ddbdd9948acdffda7e6c1a782fe73284f423f9131145f842f59e3c8abc73f971"
+  ]
 }

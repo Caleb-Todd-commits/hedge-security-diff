@@ -8,26 +8,15 @@
       "evidence": [
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 4,
+          "line": 3,
           "snippet": "export async function POST(request: Request) {",
-          "extractor": "nextjs-ast-route"
+          "extractor": "nextjs-ast-route",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "entrypoint:7821443e29938cb4"
         }
       ],
-      "controls": [
-        {
-          "type": "content-type",
-          "label": "Content type allowlist",
-          "evidence": [
-            {
-              "file": "app/api/files/upload/route.ts",
-              "line": 7,
-              "snippet": "const decision = evaluateUpload({",
-              "extractor": "typescript-ast-control"
-            }
-          ],
-          "confidence": 0.88
-        }
-      ],
+      "controls": [],
       "metadata": {
         "method": "POST",
         "path": "/api/files/upload",
@@ -45,26 +34,15 @@
       "evidence": [
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 13,
+          "line": 6,
           "snippet": "await client.send(",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "storage:ac193b90989396d6"
         }
       ],
-      "controls": [
-        {
-          "type": "content-type",
-          "label": "Content type allowlist",
-          "evidence": [
-            {
-              "file": "app/api/files/upload/route.ts",
-              "line": 7,
-              "snippet": "const decision = evaluateUpload({",
-              "extractor": "typescript-ast-control"
-            }
-          ],
-          "confidence": 0.88
-        }
-      ],
+      "controls": [],
       "metadata": {
         "file": "app/api/files/upload/route.ts",
         "callee": "client.send",
@@ -84,26 +62,15 @@
       "evidence": [
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 13,
+          "line": 6,
           "snippet": "await client.send(",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:39aed8b5cfeb2596"
         }
       ],
-      "controls": [
-        {
-          "type": "content-type",
-          "label": "Content type allowlist",
-          "evidence": [
-            {
-              "file": "app/api/files/upload/route.ts",
-              "line": 7,
-              "snippet": "const decision = evaluateUpload({",
-              "extractor": "typescript-ast-control"
-            }
-          ],
-          "confidence": 0.88
-        }
-      ],
+      "controls": [],
       "confidence": 0.94
     }
   ],

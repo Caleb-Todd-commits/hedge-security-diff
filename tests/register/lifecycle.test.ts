@@ -9,6 +9,35 @@ import {
 import { analyzeWithHeuristics } from "../../src/analysis/heuristics.js";
 import type { GraphDelta } from "../../src/domain/schemas.js";
 
+const vulnerableRevision = "a".repeat(40);
+const repairedRevision = "b".repeat(40);
+
+function completeVerificationEvidence() {
+  return {
+    vulnerableRevision,
+    repairedRevision,
+    vulnerableRevisionWitnessSucceeded: true,
+    repairedRevisionWitnessBlocked: true,
+    legitimateBehaviorPassed: true,
+    architectureControlChanged: true,
+    witnessDigest: "c".repeat(64),
+    vulnerableOutcome: "reproduced" as const,
+    repairedOutcome: "blocked-by-control" as const,
+    graphDeltaDigest: "d".repeat(64),
+    architectureEvidence: [
+      {
+        file: "route.ts",
+        line: 1,
+        extractor: "test",
+        commit: repairedRevision,
+        snapshot: "head" as const,
+        subjectId: "entrypoint:1"
+      }
+    ],
+    commands: ["immutable witness bundle"]
+  };
+}
+
 const added: GraphDelta = {
   addedNodes: [
     {
@@ -48,7 +77,15 @@ describe("risk register lifecycle", () => {
           before: added.addedNodes[0]!,
           after: {
             ...added.addedNodes[0]!,
-            controls: [{ type: "authentication", label: "auth", evidence: [], confidence: 1 }]
+            controls: [
+              {
+                type: "authentication",
+                label: "auth",
+                evidence: [],
+                confidence: 1,
+                assurance: "confirmed"
+              }
+            ]
           }
         }
       ]
@@ -60,13 +97,7 @@ describe("risk register lifecycle", () => {
   it("persists verification evidence and verifies only the complete counterfactual", () => {
     const register = emptyRegister();
     const finding = mergeFindings(register, analyzeWithHeuristics(added)).runFindings[0]!;
-    const updated = recordVerification(register, finding.id, {
-      vulnerableRevisionWitnessSucceeded: true,
-      repairedRevisionWitnessBlocked: true,
-      legitimateBehaviorPassed: true,
-      architectureControlChanged: true,
-      commands: ["npm test"]
-    });
+    const updated = recordVerification(register, finding.id, completeVerificationEvidence());
     expect(updated.status).toBe("verified");
     expect(updated.verificationHistory).toHaveLength(1);
   });
@@ -74,12 +105,7 @@ describe("risk register lifecycle", () => {
     const register = emptyRegister();
     const proposals = analyzeWithHeuristics(added);
     const finding = mergeFindings(register, proposals).runFindings[0]!;
-    const verified = recordVerification(register, finding.id, {
-      vulnerableRevisionWitnessSucceeded: true,
-      repairedRevisionWitnessBlocked: true,
-      legitimateBehaviorPassed: true,
-      architectureControlChanged: true
-    });
+    const verified = recordVerification(register, finding.id, completeVerificationEvidence());
     expect(verified.status).toBe("verified");
 
     const repeated = mergeFindings(register, proposals).runFindings[0]!;
@@ -100,7 +126,15 @@ describe("model finding lifecycle safety", () => {
           before: added.addedNodes[0]!,
           after: {
             ...added.addedNodes[0]!,
-            controls: [{ type: "authentication", label: "auth", evidence: [], confidence: 1 }]
+            controls: [
+              {
+                type: "authentication",
+                label: "auth",
+                evidence: [],
+                confidence: 1,
+                assurance: "confirmed"
+              }
+            ]
           }
         }
       ]
@@ -124,7 +158,15 @@ describe("model finding lifecycle safety", () => {
           before: added.addedNodes[0]!,
           after: {
             ...added.addedNodes[0]!,
-            controls: [{ type: "authentication", label: "auth", evidence: [], confidence: 1 }]
+            controls: [
+              {
+                type: "authentication",
+                label: "auth",
+                evidence: [],
+                confidence: 1,
+                assurance: "confirmed"
+              }
+            ]
           }
         }
       ]

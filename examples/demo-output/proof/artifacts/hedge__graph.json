@@ -1,7 +1,8 @@
 {
   "schemaVersion": "0.1",
-  "generatedAt": "2026-07-15T01:09:44.359Z",
+  "generatedAt": "2026-07-16T07:07:04.758Z",
   "repository": "local",
+  "sourceCommit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
   "framework": "nextjs",
   "nodes": [
     {
@@ -13,14 +14,39 @@
         {
           "file": "app/api/notes/route.ts",
           "line": 2,
-          "snippet": "const session = await auth();",
-          "extractor": "typescript-ast-control"
+          "snippet": "const session = await auth(request);",
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "auth-control:7bf2b37d213596d1"
         }
       ],
       "controls": [],
       "metadata": {
         "file": "app/api/notes/route.ts",
         "controlType": "authentication"
+      }
+    },
+    {
+      "id": "authorization-control:20b83844dc80aa0d",
+      "kind": "authorization-control",
+      "label": "Resource ownership derivation",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 9,
+          "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "authorization-control:20b83844dc80aa0d"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "file": "app/api/notes/route.ts",
+        "controlType": "ownership"
       }
     },
     {
@@ -33,7 +59,10 @@
           "file": "app/api/notes/route.ts",
           "line": 4,
           "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-          "extractor": "typescript-ast-control"
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "authorization-control:f2e1d5e80a7ef898"
         }
       ],
       "controls": [],
@@ -52,7 +81,10 @@
           "file": "prisma/schema.prisma",
           "line": 6,
           "snippet": "model Note {",
-          "extractor": "prisma-extractor"
+          "extractor": "prisma-extractor",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "data-model:Note"
         }
       ],
       "controls": [],
@@ -79,7 +111,10 @@
           "file": "prisma/schema.prisma",
           "line": 1,
           "snippet": "model User {",
-          "extractor": "prisma-extractor"
+          "extractor": "prisma-extractor",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "data-model:User"
         }
       ],
       "controls": [],
@@ -103,7 +138,10 @@
           "file": "app/api/notes/route.ts",
           "line": 4,
           "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "database:754eec4f7490bdab"
         }
       ],
       "controls": [
@@ -114,11 +152,15 @@
             {
               "file": "app/api/notes/route.ts",
               "line": 2,
-              "snippet": "const session = await auth();",
-              "extractor": "typescript-ast-control"
+              "snippet": "const session = await auth(request);",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "database:754eec4f7490bdab"
             }
           ],
-          "confidence": 0.93
+          "confidence": 0.93,
+          "assurance": "confirmed"
         },
         {
           "type": "ownership",
@@ -128,17 +170,38 @@
               "file": "app/api/notes/route.ts",
               "line": 4,
               "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-              "extractor": "typescript-ast-control"
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "database:754eec4f7490bdab"
             }
           ],
-          "confidence": 0.81
+          "confidence": 0.81,
+          "assurance": "confirmed"
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership derivation",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 9,
+              "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "database:754eec4f7490bdab"
+            }
+          ],
+          "confidence": 0.84,
+          "assurance": "confirmed"
         }
       ],
       "metadata": {
         "file": "app/api/notes/route.ts",
         "model": "note",
         "operation": "findMany",
-        "userControlled": false
+        "userControlled": true
       }
     },
     {
@@ -149,7 +212,12 @@
       "evidence": [
         {
           "file": "package.json",
-          "extractor": "package-extractor"
+          "line": 1,
+          "snippet": "{",
+          "extractor": "package-extractor",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "dependency:@aws-sdk/client-s3"
         }
       ],
       "controls": [],
@@ -166,7 +234,12 @@
       "evidence": [
         {
           "file": "package.json",
-          "extractor": "package-extractor"
+          "line": 1,
+          "snippet": "{",
+          "extractor": "package-extractor",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "dependency:next"
         }
       ],
       "controls": [],
@@ -183,7 +256,12 @@
       "evidence": [
         {
           "file": "package.json",
-          "extractor": "package-extractor"
+          "line": 1,
+          "snippet": "{",
+          "extractor": "package-extractor",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "dependency:prisma"
         }
       ],
       "controls": [],
@@ -201,8 +279,11 @@
         {
           "file": "app/api/notes/route.ts",
           "line": 1,
-          "snippet": "export async function GET() {",
-          "extractor": "nextjs-ast-route"
+          "snippet": "export async function GET(request: Request) {",
+          "extractor": "nextjs-ast-route",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "entrypoint:7687698fbe395d3f"
         }
       ],
       "controls": [
@@ -213,11 +294,15 @@
             {
               "file": "app/api/notes/route.ts",
               "line": 2,
-              "snippet": "const session = await auth();",
-              "extractor": "typescript-ast-control"
+              "snippet": "const session = await auth(request);",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "entrypoint:7687698fbe395d3f"
             }
           ],
-          "confidence": 0.93
+          "confidence": 0.93,
+          "assurance": "confirmed"
         },
         {
           "type": "ownership",
@@ -227,10 +312,31 @@
               "file": "app/api/notes/route.ts",
               "line": 4,
               "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-              "extractor": "typescript-ast-control"
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "entrypoint:7687698fbe395d3f"
             }
           ],
-          "confidence": 0.81
+          "confidence": 0.81,
+          "assurance": "confirmed"
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership derivation",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 9,
+              "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "entrypoint:7687698fbe395d3f"
+            }
+          ],
+          "confidence": 0.84,
+          "assurance": "confirmed"
         }
       ],
       "metadata": {
@@ -241,9 +347,78 @@
         "handler": "GET",
         "extractor": "typescript-ast"
       }
+    },
+    {
+      "id": "entrypoint:7821443e29938cb4",
+      "kind": "entrypoint",
+      "label": "POST /api/files/upload",
+      "trustZone": "public",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 3,
+          "snippet": "export async function POST(request: Request) {",
+          "extractor": "nextjs-ast-route",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "entrypoint:7821443e29938cb4"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "POST",
+        "path": "/api/files/upload",
+        "file": "app/api/files/upload/route.ts",
+        "framework": "nextjs",
+        "handler": "POST",
+        "extractor": "typescript-ast"
+      }
+    },
+    {
+      "id": "storage:ac193b90989396d6",
+      "kind": "storage",
+      "label": "Storage write",
+      "trustZone": "data",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 6,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "storage:ac193b90989396d6"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "file": "app/api/files/upload/route.ts",
+        "callee": "client.send",
+        "userControlled": true
+      }
     }
   ],
   "edges": [
+    {
+      "id": "edge:39aed8b5cfeb2596",
+      "from": "entrypoint:7821443e29938cb4",
+      "to": "storage:ac193b90989396d6",
+      "kind": "writes",
+      "label": "Storage write",
+      "evidence": [
+        {
+          "file": "app/api/files/upload/route.ts",
+          "line": 6,
+          "snippet": "await client.send(",
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:39aed8b5cfeb2596"
+        }
+      ],
+      "controls": [],
+      "confidence": 0.94
+    },
     {
       "id": "edge:3af551256deab10a",
       "from": "entrypoint:7687698fbe395d3f",
@@ -254,7 +429,10 @@
           "file": "app/api/notes/route.ts",
           "line": 4,
           "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-          "extractor": "typescript-ast-control"
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:3af551256deab10a"
         }
       ],
       "controls": [
@@ -266,13 +444,54 @@
               "file": "app/api/notes/route.ts",
               "line": 4,
               "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-              "extractor": "typescript-ast-control"
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:3af551256deab10a"
             }
           ],
-          "confidence": 0.81
+          "confidence": 0.81,
+          "assurance": "confirmed"
         }
       ],
       "confidence": 0.81
+    },
+    {
+      "id": "edge:4be1acae82feb540",
+      "from": "entrypoint:7687698fbe395d3f",
+      "to": "authorization-control:20b83844dc80aa0d",
+      "kind": "authorizes",
+      "evidence": [
+        {
+          "file": "app/api/notes/route.ts",
+          "line": 9,
+          "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:4be1acae82feb540"
+        }
+      ],
+      "controls": [
+        {
+          "type": "ownership",
+          "label": "Resource ownership derivation",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 9,
+              "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:4be1acae82feb540"
+            }
+          ],
+          "confidence": 0.84,
+          "assurance": "confirmed"
+        }
+      ],
+      "confidence": 0.84
     },
     {
       "id": "edge:8ffdc332815a44a2",
@@ -285,7 +504,10 @@
           "file": "app/api/notes/route.ts",
           "line": 4,
           "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:8ffdc332815a44a2"
         }
       ],
       "controls": [
@@ -296,11 +518,15 @@
             {
               "file": "app/api/notes/route.ts",
               "line": 2,
-              "snippet": "const session = await auth();",
-              "extractor": "typescript-ast-control"
+              "snippet": "const session = await auth(request);",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:8ffdc332815a44a2"
             }
           ],
-          "confidence": 0.93
+          "confidence": 0.93,
+          "assurance": "confirmed"
         },
         {
           "type": "ownership",
@@ -310,10 +536,31 @@
               "file": "app/api/notes/route.ts",
               "line": 4,
               "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-              "extractor": "typescript-ast-control"
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:8ffdc332815a44a2"
             }
           ],
-          "confidence": 0.81
+          "confidence": 0.81,
+          "assurance": "confirmed"
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership derivation",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 9,
+              "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:8ffdc332815a44a2"
+            }
+          ],
+          "confidence": 0.84,
+          "assurance": "confirmed"
         }
       ],
       "confidence": 0.94
@@ -329,7 +576,10 @@
           "file": "app/api/notes/route.ts",
           "line": 4,
           "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:d525216bd1bb2930"
         }
       ],
       "controls": [
@@ -340,11 +590,15 @@
             {
               "file": "app/api/notes/route.ts",
               "line": 2,
-              "snippet": "const session = await auth();",
-              "extractor": "typescript-ast-control"
+              "snippet": "const session = await auth(request);",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:d525216bd1bb2930"
             }
           ],
-          "confidence": 0.93
+          "confidence": 0.93,
+          "assurance": "confirmed"
         },
         {
           "type": "ownership",
@@ -354,10 +608,31 @@
               "file": "app/api/notes/route.ts",
               "line": 4,
               "snippet": "const notes = await prisma.note.findMany({ where: { ownerId: session.user.id } });",
-              "extractor": "typescript-ast-control"
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:d525216bd1bb2930"
             }
           ],
-          "confidence": 0.81
+          "confidence": 0.81,
+          "assurance": "confirmed"
+        },
+        {
+          "type": "ownership",
+          "label": "Resource ownership derivation",
+          "evidence": [
+            {
+              "file": "app/api/notes/route.ts",
+              "line": 9,
+              "snippet": "const userId = request.headers.get(\"x-demo-user-id\");",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:d525216bd1bb2930"
+            }
+          ],
+          "confidence": 0.84,
+          "assurance": "confirmed"
         }
       ],
       "confidence": 0.95
@@ -371,8 +646,11 @@
         {
           "file": "app/api/notes/route.ts",
           "line": 2,
-          "snippet": "const session = await auth();",
-          "extractor": "typescript-ast-control"
+          "snippet": "const session = await auth(request);",
+          "extractor": "typescript-ast-control",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "edge:ffc769fcaeac42ef"
         }
       ],
       "controls": [
@@ -383,11 +661,15 @@
             {
               "file": "app/api/notes/route.ts",
               "line": 2,
-              "snippet": "const session = await auth();",
-              "extractor": "typescript-ast-control"
+              "snippet": "const session = await auth(request);",
+              "extractor": "typescript-ast-control",
+              "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+              "snapshot": "head",
+              "subjectId": "edge:ffc769fcaeac42ef"
             }
           ],
-          "confidence": 0.93
+          "confidence": 0.93,
+          "assurance": "confirmed"
         }
       ],
       "confidence": 0.93
@@ -397,7 +679,7 @@
     "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
     "Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.",
     "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
-    "Repository evidence coverage: 8/8 candidate files and 4290 bytes analyzed."
+    "Repository evidence coverage: 9/9 candidate files and 4959 bytes analyzed."
   ],
   "unknowns": [
     "Sensitive assets were not confirmed in .hedge/context.yml.",
@@ -405,5 +687,18 @@
     "Authentication mechanisms were inferred from code and not confirmed in .hedge/context.yml.",
     "Privileged roles were not confirmed in .hedge/context.yml.",
     "Trusted external services were not confirmed in .hedge/context.yml."
-  ]
+  ],
+  "coverage": {
+    "status": "complete",
+    "discoveredFiles": 9,
+    "includedFiles": 9,
+    "includedBytes": 4959,
+    "omitted": {
+      "fileLimit": 0,
+      "byteLimit": 0,
+      "unsafeOrUnreadable": 0,
+      "binary": 0
+    },
+    "diagnostics": []
+  }
 }

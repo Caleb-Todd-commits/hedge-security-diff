@@ -155,7 +155,7 @@ describe("threat register integrity", () => {
     expect(loaded.stateIntegrity?.toolVersion).toBe("0.4.0");
     await saveThreatRegister(root, loaded);
     const upgraded = await loadThreatRegister(root);
-    expect(upgraded.stateIntegrity?.toolVersion).toBe("0.5.0");
+    expect(upgraded.stateIntegrity?.toolVersion).toBe("0.5.2");
     expect(upgraded.invariantEvaluations ?? []).toEqual([]);
     expect(validateThreatRegisterIntegrity(upgraded)).toEqual([]);
   });

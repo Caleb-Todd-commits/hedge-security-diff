@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml/badge.svg)](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/ci.yml)
 [![Action self-test](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/action-self-test.yml/badge.svg)](https://github.com/Caleb-Todd-commits/hedge-security-diff/actions/workflows/action-self-test.yml)
-[![Release](https://img.shields.io/github/v/release/Caleb-Todd-commits/hedge-security-diff)](https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/tag/v0.5.1)
+[![Release](https://img.shields.io/github/v/release/Caleb-Todd-commits/hedge-security-diff)](https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/latest)
 [![Demo](https://img.shields.io/badge/demo-security%20diff-1f6f50)](https://caleb-todd-commits.github.io/hedge-security-diff/)
 
 > Git shows which lines changed. Hedge shows how the system's attack surface, trust boundaries, privilege, controls, and data flows changed.
@@ -22,9 +22,12 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Evidence-linked routes and Server Actions, authentication, authorization, ownership, validation, rate limits, upload limits, database operations, object storage, external calls, command execution, logging, environment credentials, workflows, dependencies, and Prisma models.
 - Stable attack-surface graph and Mermaid rendering with red risk paths, amber additions, and green verified paths.
 - Security architecture graph diffs and silence-by-default behavior.
+- Exact base/head graph extraction from bounded Git object bytes, independent of the checked-out working tree and stored graph cache.
+- First-class `coverage`, `analysisHealth`, and `confirmedNoDelta` results; inferred controls and incomplete evidence remain unknown.
 - Trusted-base loading of `.hedge.yml`, `.hedge/context.yml`, and `threatmodel.json` for pull requests.
 - GitHub API patch collection bounded by the trusted base policy.
 - GPT-5.6 Luna/Sol routing with Structured Outputs and combined token usage reporting.
+- Credential-separated PR execution: secretless collection, no-checkout model reasoning, and a no-OpenAI-key publisher connected by RunManifest v0.1 SHA-256 bindings.
 - Evidence-reference validation: unsupported model claims are omitted rather than converted into fake provenance.
 - Prompt-injection isolation: repository content is delimited untrusted data, credential-shaped values are redacted before model/report use, analysis receives no shell or GitHub-write tools, and a boundary-failure response is discarded.
 - Stable `HEDGE-NNN` register, fingerprint deduplication, recorded acceptance, verification history, bounded architecture-run history, atomic state writes, and full-register integrity sealing.
@@ -33,7 +36,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Approval-gated `@hedge fix HEDGE-NNN` example using `openai/codex-action@v1`, an isolated patch artifact, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 121 unit/contract/schema tests.
+- 45-case deterministic DriftBench suite and 226 unit, contract, replay, and schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -41,7 +44,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Strict observation → inference → decision separation so deterministic repository facts never silently become model conclusions or merge verdicts.
 - Replayable end-to-end fixtures that run base/head extraction, graph diffing, recorded model boundaries, invariant evaluation, reports, SARIF, and expected-result assertions.
 - Tamper-evident proof bundles with artifact SHA-256 digests and a self-verifying manifest.
-- Generated Draft 2020-12 JSON Schemas for every public Hedge artifact.
+- Generated Draft 2020-12 JSON Schemas for the graph, register, configuration, context, verification, analysis, invariant, RunManifest, collection-bundle, and reason-bundle interfaces.
 
 ## Quick start
 
@@ -64,12 +67,12 @@ Supported judge platform: macOS or Linux with Node.js 22 or newer and Git. The G
 Install Hedge into another repository after publishing and pinning the Action:
 
 ```bash
-hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f --full
+hedge install --action-ref OWNER/REPOSITORY@FULL_40_CHARACTER_COMMIT_SHA --full
 hedge doctor
 hedge init --configure
 ```
 
-The immutable revision above is the green v0.5.1 release commit.
+Replace the placeholder with the immutable commit SHA of the published green release.
 
 Develop from this source package:
 
@@ -134,51 +137,30 @@ npm run audit:high
 - `.hedge/report.html` — standalone interactive security-diff dashboard.
 - `.hedge/results.sarif` — SARIF 2.1.0 results for GitHub code scanning.
 - `.hedge/delta.json` and `.hedge/analysis.json` — machine-readable architecture delta and reasoning result.
+- `.hedge/pipeline/` — bounded collection/reason bundles and RunManifest v0.1 handoffs for GitHub jobs.
 - `.hedge/proof/` — tamper-evident evidence bundle and digest manifest.
-- `schemas/` — Draft 2020-12 schemas for graph, register, config, context, verification, and analysis artifacts.
+- `schemas/` — Draft 2020-12 schemas for graph, register, config, context, verification, analysis, invariants, RunManifest, and staged collection/reason bundles.
 
 ## GitHub Action
 
-Use a published Hedge revision pinned to an immutable commit. The target repository's pull-request workflow may check out the head for **reading only**; Hedge loads policy, manual context, and baseline state from the trusted base SHA through the GitHub API.
+Use a published Hedge revision pinned to its immutable 40-character commit SHA. `hedge install` writes the complete three-job workflow from `examples/workflows/hedge.yml`: `collect` has a read-only checkout and no OpenAI key, `reason` has the OpenAI key but no checkout or write authority, and `publish` has GitHub write authority but no OpenAI key.
 
-```yaml
-name: Hedge
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  pull-requests: write
-  security-events: write
-
-jobs:
-  security-diff:
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          github-token: ${{ github.token }}
+```bash
+hedge install \
+  --action-ref OWNER/REPOSITORY@FULL_40_CHARACTER_COMMIT_SHA \
+  --full
 ```
 
-The example is pinned to the full v0.5.1 commit SHA so a mutable tag cannot silently change the Action being executed.
+The installer is additive by default and will not overwrite an existing workflow unless `--force` is supplied. Run `hedge doctor` afterward from the repository root; from a nested directory, pass the repository path with `--root`.
 
 See `examples/workflows/` for the PR check, model refresh, Codex remediation, and counterfactual verification workflows.
 
 ## Core pipeline
 
 ```text
-Trusted base policy, context, and register
+Trusted base policy, context, and valid lifecycle register
                   +
-       Pull-request source evidence
+       Exact base/head Git object bytes
                   ↓
      Handler-scoped AST extraction
                   +
@@ -188,13 +170,17 @@ Trusted base policy, context, and register
                   ↓
         Security architecture diff
                   ↓
- No delta → no model call and no PR comment
+ Complete exact no delta → no model call/comment; remove stale report
+                  ↓
+ RunManifest-bound handoff to no-checkout reasoning job
                   ↓
  Luna triage → forced Sol interpretation for sensitive deltas
                   ↓
  Schema validation + evidence resolution
                   ↓
  Observation → inference → decision record
+                  ↓
+ Stale-head recheck in no-OpenAI-key publisher
                   ↓
  Stable risk + invariant + suggested witness
                   ↓

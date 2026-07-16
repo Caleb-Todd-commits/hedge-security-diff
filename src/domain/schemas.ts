@@ -6,7 +6,9 @@ export const EvidenceSchema = z.object({
   endLine: z.number().int().positive().optional(),
   snippet: z.string().optional(),
   extractor: z.string(),
-  commit: z.string().optional()
+  commit: z.string().optional(),
+  snapshot: z.enum(["base", "head"]).optional(),
+  subjectId: z.string().optional()
 });
 
 export const NodeKindSchema = z.enum([
@@ -56,11 +58,43 @@ export const ControlTypeSchema = z.enum([
   "other"
 ]);
 
+export const ControlAssuranceSchema = z.enum(["trusted", "confirmed", "inferred", "unknown"]);
+
 export const ControlSchema = z.object({
   type: ControlTypeSchema,
   label: z.string(),
   evidence: z.array(EvidenceSchema).default([]),
-  confidence: z.number().min(0).max(1).default(1)
+  confidence: z.number().min(0).max(1).default(1),
+  // Existing v0.x registers omitted this field. Parsing those controls must
+  // never silently promote them to confirmed semantic evidence.
+  assurance: ControlAssuranceSchema.default("inferred")
+});
+
+export const CoverageDiagnosticSchema = z.object({
+  code: z.string(),
+  phase: z.enum(["collection", "parsing", "framework", "patch", "analysis"]),
+  message: z.string(),
+  file: z.string().optional(),
+  snapshot: z.enum(["base", "head"]).optional()
+});
+
+export const CoverageSchema = z.object({
+  status: z.enum(["complete", "partial", "unsupported"]),
+  discoveredFiles: z.number().int().nonnegative(),
+  includedFiles: z.number().int().nonnegative(),
+  includedBytes: z.number().int().nonnegative(),
+  omitted: z.object({
+    fileLimit: z.number().int().nonnegative(),
+    byteLimit: z.number().int().nonnegative(),
+    unsafeOrUnreadable: z.number().int().nonnegative(),
+    binary: z.number().int().nonnegative()
+  }),
+  diagnostics: z.array(CoverageDiagnosticSchema).default([])
+});
+
+export const AnalysisHealthSchema = z.object({
+  status: z.enum(["complete", "degraded", "failed"]),
+  reasons: z.array(z.string()).default([])
 });
 
 export const SurfaceNodeSchema = z.object({
@@ -88,11 +122,13 @@ export const AttackSurfaceGraphSchema = z.object({
   schemaVersion: z.literal("0.1"),
   generatedAt: z.string(),
   repository: z.string().default("local"),
+  sourceCommit: z.string().optional(),
   framework: z.string().default("unknown"),
   nodes: z.array(SurfaceNodeSchema),
   edges: z.array(SurfaceEdgeSchema),
   assumptions: z.array(z.string()).default([]),
-  unknowns: z.array(z.string()).default([])
+  unknowns: z.array(z.string()).default([]),
+  coverage: CoverageSchema.optional()
 });
 
 export const GraphDeltaSchema = z.object({
@@ -203,7 +239,7 @@ export const DecisionSchema = z.object({
   id: z.string(),
   type: z.enum(["allow", "warn", "block", "accept", "verify"]),
   reason: z.string(),
-  source: z.enum(["threshold", "invariant", "policy", "human", "lifecycle"]),
+  source: z.enum(["threshold", "invariant", "policy", "human", "lifecycle", "analysis-health"]),
   riskFingerprints: z.array(z.string()).default([]),
   invariantIds: z.array(z.string()).default([]),
   observationIds: z.array(z.string()).default([]),
@@ -236,6 +272,17 @@ export const VerificationEvidenceSchema = z.object({
   repairedRevisionWitnessBlocked: z.boolean(),
   legitimateBehaviorPassed: z.boolean(),
   architectureControlChanged: z.boolean(),
+  witnessDigest: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  vulnerableOutcome: z.enum(["reproduced", "blocked-by-control", "inconclusive"]).optional(),
+  repairedOutcome: z.enum(["reproduced", "blocked-by-control", "inconclusive"]).optional(),
+  graphDeltaDigest: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  architectureEvidence: z.array(EvidenceSchema).default([]),
   commands: z.array(z.string()).default([]),
   notes: z.array(z.string()).default([]),
   artifacts: z.array(z.string()).default([])
@@ -291,6 +338,9 @@ export const RiskFindingSchema = z.object({
 export const AnalysisResultSchema = z.object({
   summary: z.string(),
   surfaceChanged: z.boolean(),
+  confirmedNoDelta: z.boolean().optional(),
+  coverage: CoverageSchema.optional(),
+  analysisHealth: AnalysisHealthSchema.optional(),
   observations: z.array(ObservationSchema).optional(),
   inferences: z.array(InferenceSchema).optional(),
   decisions: z.array(DecisionSchema).optional(),
@@ -306,6 +356,33 @@ export const AnalysisResultSchema = z.object({
   usage: z
     .object({ inputTokens: z.number().optional(), outputTokens: z.number().optional() })
     .optional()
+});
+
+export const RunManifestSchema = z.object({
+  schemaVersion: z.literal("0.1"),
+  createdAt: z.string(),
+  repository: z.string().min(1),
+  pullRequest: z.number().int().positive().optional(),
+  baseSha: z.string().min(1),
+  headSha: z.string().min(1),
+  workflowRef: z.string().min(1),
+  actionVersion: z.string().min(1),
+  extractorVersion: z.string().min(1),
+  artifactSchemaVersion: z.string().min(1),
+  promptVersion: z.string().min(1).optional(),
+  configDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  contextDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  extractorDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  schemaDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  promptDigest: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  model: z.string().optional(),
+  coverage: CoverageSchema,
+  analysisHealth: AnalysisHealthSchema,
+  artifacts: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)),
+  manifestDigest: z.string().regex(/^[a-f0-9]{64}$/)
 });
 
 export const RunRecordSchema = z.object({
@@ -334,7 +411,7 @@ export const ThreatRegisterSchema = z.object({
       configHash: z.string().optional(),
       contextHash: z.string().optional(),
       sourceCommit: z.string().optional(),
-      toolVersion: z.string().default("0.5.0")
+      toolVersion: z.string().default("0.5.2")
     })
     .optional(),
   nextRiskNumber: z.number().int().positive(),
@@ -383,7 +460,44 @@ export const HedgeConfigSchema = z.object({
     .default({ max_files: 120, max_bytes: 350000 })
 });
 
+export const CollectionBundleSchema = z.object({
+  schemaVersion: z.literal("0.1"),
+  repository: z.string().min(1),
+  pullRequest: z.number().int().positive(),
+  baseSha: z.string().regex(/^[a-f0-9]{40,64}$/),
+  headSha: z.string().regex(/^[a-f0-9]{40,64}$/),
+  workflowRef: z.string().min(1),
+  actionVersion: z.string().min(1),
+  config: HedgeConfigSchema,
+  context: HedgeContextSchema,
+  baseline: AttackSurfaceGraphSchema,
+  graph: AttackSurfaceGraphSchema,
+  delta: GraphDeltaSchema,
+  patch: z.string().max(400_000),
+  coverage: CoverageSchema,
+  analysisHealth: AnalysisHealthSchema,
+  exactRevisions: z.literal(true),
+  analysis: AnalysisResultSchema,
+  register: ThreatRegisterSchema.optional()
+});
+
+export const ReasonBundleSchema = z.object({
+  schemaVersion: z.literal("0.1"),
+  repository: z.string().min(1),
+  pullRequest: z.number().int().positive(),
+  baseSha: z.string().regex(/^[a-f0-9]{40,64}$/),
+  headSha: z.string().regex(/^[a-f0-9]{40,64}$/),
+  workflowRef: z.string().min(1),
+  actionVersion: z.string().min(1),
+  collectionManifestDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  analysis: AnalysisResultSchema,
+  lifecycleUpdates: z.array(RiskFindingSchema).default([])
+});
+
 export type Evidence = z.infer<typeof EvidenceSchema>;
+export type Coverage = z.infer<typeof CoverageSchema>;
+export type AnalysisHealth = z.infer<typeof AnalysisHealthSchema>;
+export type ControlAssurance = z.infer<typeof ControlAssuranceSchema>;
 export type SurfaceNode = z.infer<typeof SurfaceNodeSchema>;
 export type SurfaceEdge = z.infer<typeof SurfaceEdgeSchema>;
 export type AttackSurfaceGraph = z.infer<typeof AttackSurfaceGraphSchema>;
@@ -403,3 +517,6 @@ export type Observation = z.infer<typeof ObservationSchema>;
 export type Inference = z.infer<typeof InferenceSchema>;
 export type Decision = z.infer<typeof DecisionSchema>;
 export type HedgeContext = z.infer<typeof HedgeContextSchema>;
+export type RunManifest = z.infer<typeof RunManifestSchema>;
+export type CollectionBundle = z.infer<typeof CollectionBundleSchema>;
+export type ReasonBundle = z.infer<typeof ReasonBundleSchema>;

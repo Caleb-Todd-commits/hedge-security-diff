@@ -1,13 +1,28 @@
+import { writeFileSync } from "node:fs";
 import { evaluateUpload } from "../lib/upload-policy.js";
+
 const result = evaluateUpload({
   authenticated: false,
   ownerId: "",
   type: "application/x-executable",
   size: 50_000_000
 });
-if (result.accepted) {
-  console.log("Risk reproduced: unauthenticated, oversized executable content was accepted.");
-  process.exit(0);
+
+const outcome = result.accepted
+  ? {
+      outcome: "reproduced",
+      reason: "Unauthenticated, oversized executable content was accepted."
+    }
+  : {
+      outcome: "blocked-by-control",
+      reason: "The intended upload controls rejected the witness."
+    };
+const serialized = `${JSON.stringify(outcome)}\n`;
+
+if (process.env.HEDGE_OUTCOME_PATH) {
+  writeFileSync(process.env.HEDGE_OUTCOME_PATH, serialized, {
+    encoding: "utf8",
+    mode: 0o600
+  });
 }
-console.log("Risk blocked: the malicious upload was rejected.");
-process.exit(1);
+process.stdout.write(serialized);

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2 — deadline-locked correctness and isolation
+
+- Rebuilt authoritative graphs from exact PR base and head object bytes with explicit coverage and analysis-health state.
+- Added conservative control assurance, deterministic invariant `unknown` behavior, and non-blocking model-only findings.
+- Added RunManifest-bound `collect`, `reason`, and `publish` jobs so model credentials and GitHub write authority never share a job.
+- Hardened draft remediation and four-condition counterfactual verification with immutable witness and architecture-delta evidence.
+- Added bounded, commit-linked PR reports and CWD-independent workflow installation.
+- Expanded the automated suite to 226 tests while retaining 45/45 deterministic evaluation cases.
+
 ## 0.5.1 — public, installable Build Week release
 
 - Published the bundled Node 24 Action entry point so repository refs execute without a local build.

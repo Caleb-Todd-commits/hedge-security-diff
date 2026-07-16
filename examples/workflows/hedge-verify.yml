@@ -8,146 +8,529 @@ on:
         required: true
         type: string
       vulnerable_ref:
-        description: Commit/ref where the witness must demonstrate the risk
+        description: Exact commit/ref where the witness must reproduce the design risk
         required: true
         type: string
       repaired_ref:
-        description: Commit/ref where the witness must be blocked
+        description: Exact commit/ref where the intended control must block the witness
         required: true
         type: string
       state_ref:
-        description: Branch containing the trusted threatmodel.json to update
+        description: Protected branch containing reviewed Hedge state and witness
         required: true
         default: main
         type: string
-      witness_script:
-        description: Repository npm script that returns 0 when the risky behavior is reproduced
+      witness_path:
+        description: Reviewed self-contained JavaScript witness path on state_ref
         required: true
-        default: test:hedge-witness
+        default: hedge-tests/witness.mjs
         type: string
       legitimate_script:
-        description: Repository npm script proving intended behavior still works
+        description: Repository npm script proving intended behavior on the repair
         required: true
         default: test:hedge-legitimate
         type: string
-      architecture_control_changed:
-        description: Confirm only after reviewing the Hedge graph delta for the repair
-        required: true
-        default: false
-        type: boolean
+
+concurrency:
+  group: hedge-verify-${{ github.repository }}-${{ inputs.risk_id }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
+env:
+  HEDGE_WITNESS_IMAGE: node:22-bookworm-slim
+
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       risk_id: ${{ steps.validate.outputs.risk_id }}
+      vulnerable_sha: ${{ steps.validate.outputs.vulnerable_sha }}
+      repaired_sha: ${{ steps.validate.outputs.repaired_sha }}
+      state_sha: ${{ steps.validate.outputs.state_sha }}
+      witness_path: ${{ steps.validate.outputs.witness_path }}
+      legitimate_script: ${{ steps.validate.outputs.legitimate_script }}
     steps:
-      - id: validate
+      - name: Validate inputs and resolve exact revisions
+        id: validate
+        uses: actions/github-script@v9
         env:
           RISK_ID: ${{ inputs.risk_id }}
-          WITNESS: ${{ inputs.witness_script }}
-          LEGITIMATE: ${{ inputs.legitimate_script }}
           VULNERABLE_REF: ${{ inputs.vulnerable_ref }}
           REPAIRED_REF: ${{ inputs.repaired_ref }}
           STATE_REF: ${{ inputs.state_ref }}
-        run: |
-          [[ "$RISK_ID" =~ ^HEDGE-[0-9]{3,}$ ]] || exit 1
-          [[ "$WITNESS" =~ ^[A-Za-z0-9:_-]+$ ]] || exit 1
-          [[ "$LEGITIMATE" =~ ^[A-Za-z0-9:_-]+$ ]] || exit 1
-          for REF in "$VULNERABLE_REF" "$REPAIRED_REF" "$STATE_REF"; do
-            [[ "$REF" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$ ]] || exit 1
-            [[ "$REF" != *".."* && "$REF" != *"@{"* ]] || exit 1
-          done
-          echo "risk_id=$RISK_ID" >> "$GITHUB_OUTPUT"
+          WITNESS_PATH: ${{ inputs.witness_path }}
+          LEGITIMATE_SCRIPT: ${{ inputs.legitimate_script }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const riskId = process.env.RISK_ID;
+            const refs = [process.env.VULNERABLE_REF, process.env.REPAIRED_REF, process.env.STATE_REF];
+            if (!/^HEDGE-[0-9]{3,}$/.test(riskId)) return core.setFailed('risk_id must be HEDGE-NNN.');
+            for (const ref of refs) {
+              if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/.test(ref) || ref.includes('..') || ref.includes('@{')) {
+                return core.setFailed('Each revision must be a bounded Git ref without traversal or reflog syntax.');
+              }
+            }
+            const witnessPath = process.env.WITNESS_PATH;
+            if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,239}\.(?:mjs|cjs|js)$/.test(witnessPath) || witnessPath.split('/').includes('..')) {
+              return core.setFailed('witness_path must be a repository-relative JavaScript file.');
+            }
+            const legitimateScript = process.env.LEGITIMATE_SCRIPT;
+            if (!/^[A-Za-z0-9:_-]{1,100}$/.test(legitimateScript)) {
+              return core.setFailed('legitimate_script must be a literal npm script name.');
+            }
+            const resolveCommit = async (ref) => {
+              const response = await github.rest.repos.getCommit({ ...context.repo, ref });
+              return response.data.sha.toLowerCase();
+            };
+            const vulnerableSha = await resolveCommit(refs[0]);
+            const repairedSha = await resolveCommit(refs[1]);
+            const stateSha = await resolveCommit(refs[2]);
+            await github.rest.repos.getBranch({ ...context.repo, branch: refs[2] });
+            if (vulnerableSha === repairedSha) return core.setFailed('Vulnerable and repaired revisions must differ.');
+            core.setOutput('risk_id', riskId);
+            core.setOutput('vulnerable_sha', vulnerableSha);
+            core.setOutput('repaired_sha', repairedSha);
+            core.setOutput('state_sha', stateSha);
+            core.setOutput('witness_path', witnessPath);
+            core.setOutput('legitimate_script', legitimateScript);
 
-  vulnerable-witness:
+  prepare-witness:
     needs: validate-inputs
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      witness_digest: ${{ steps.bundle.outputs.witness_digest }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.vulnerable_ref }}
+          ref: ${{ needs.validate-inputs.outputs.state_sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies without lifecycle scripts
-        run: |
-          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
-      - name: Risk witness must succeed on vulnerable revision
-        env:
-          SCRIPT: ${{ inputs.witness_script }}
-        run: npm run "$SCRIPT"
-
-  repaired-verification:
-    needs: validate-inputs
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.repaired_ref }}
-          persist-credentials: false
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies without lifecycle scripts
-        run: |
-          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
-      - name: Risk witness must now be blocked
-        env:
-          SCRIPT: ${{ inputs.witness_script }}
-        run: |
-          if npm run "$SCRIPT"; then
-            echo "The risky witness still succeeds on the repaired revision."
-            exit 1
-          fi
-      - name: Legitimate behavior must still pass
-        env:
-          SCRIPT: ${{ inputs.legitimate_script }}
-        run: npm run "$SCRIPT"
-      - name: Create verification evidence
+      - name: Seal the reviewed witness bundle
+        id: bundle
         env:
           RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
-          VULNERABLE_REF: ${{ inputs.vulnerable_ref }}
-          REPAIRED_REF: ${{ inputs.repaired_ref }}
-          WITNESS: ${{ inputs.witness_script }}
-          LEGITIMATE: ${{ inputs.legitimate_script }}
+          WITNESS_PATH: ${{ needs.validate-inputs.outputs.witness_path }}
+          STATE_SHA: ${{ needs.validate-inputs.outputs.state_sha }}
+        run: |
+          node <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const path = require('path');
+          const root = fs.realpathSync(process.cwd());
+          const requested = path.resolve(root, process.env.WITNESS_PATH);
+          const relative = path.relative(root, requested);
+          if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+            throw new Error('Witness must remain inside the reviewed state checkout.');
+          }
+          const stat = fs.lstatSync(requested);
+          if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('Witness must be a regular non-symlink file.');
+          if (stat.size > 131072) throw new Error('Witness bundle exceeds 128 KiB.');
+          const real = fs.realpathSync(requested);
+          if (real !== requested) throw new Error('Witness path may not traverse symbolic links.');
+          const bytes = fs.readFileSync(requested);
+          const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+          fs.mkdirSync('.hedge/witness', { recursive: true });
+          fs.writeFileSync('.hedge/witness/witness.mjs', bytes, { mode: 0o400 });
+          fs.writeFileSync('.hedge/witness/manifest.json', `${JSON.stringify({
+            schemaVersion: '0.1',
+            riskId: process.env.RISK_ID,
+            stateRevision: process.env.STATE_SHA,
+            witnessDigest: digest,
+            byteLength: bytes.length
+          }, null, 2)}\n`, { mode: 0o400 });
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `witness_digest=${digest}\n`);
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hedge-witness-${{ github.run_id }}
+          path: .hedge/witness
+          if-no-files-found: error
+          retention-days: 7
+
+  witness-counterfactual:
+    needs: [validate-inputs, prepare-witness]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - phase: vulnerable
+            revision: ${{ needs.validate-inputs.outputs.vulnerable_sha }}
+          - phase: repaired
+            revision: ${{ needs.validate-inputs.outputs.repaired_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.revision }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies without lifecycle scripts
+        timeout-minutes: 8
+        run: |
+          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+      - uses: actions/download-artifact@v8
+        with:
+          name: hedge-witness-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-witness
+      - name: Execute immutable witness without network or credentials
+        env:
+          EXPECTED_DIGEST: ${{ needs.prepare-witness.outputs.witness_digest }}
+          PHASE: ${{ matrix.phase }}
+          REVISION: ${{ matrix.revision }}
+          RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+          IMAGE: ${{ env.HEDGE_WITNESS_IMAGE }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/hedge-outcome"
+          docker pull "$IMAGE"
+          set +e
+          docker run --rm --network none --memory 1g --cpus 2 \
+            --user "$(id -u):$(id -g)" \
+            -e HEDGE_OUTCOME_PATH=/out/raw.json \
+            -v "$GITHUB_WORKSPACE:/workspace:ro" \
+            -v "$RUNNER_TEMP/hedge-witness:/witness:ro" \
+            -v "$RUNNER_TEMP/hedge-outcome:/out:rw" \
+            -w /workspace \
+            "$IMAGE" timeout 300s node /witness/witness.mjs
+          witness_exit=$?
+          set -e
+          WITNESS_EXIT="$witness_exit" node <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const witness = fs.readFileSync(`${process.env.RUNNER_TEMP}/hedge-witness/witness.mjs`);
+          const actualDigest = crypto.createHash('sha256').update(witness).digest('hex');
+          if (actualDigest !== process.env.EXPECTED_DIGEST) throw new Error('Witness artifact digest mismatch.');
+          const exitCode = Number(process.env.WITNESS_EXIT);
+          let outcome = 'inconclusive';
+          const notes = [];
+          if (exitCode === 0) {
+            try {
+              const raw = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/hedge-outcome/raw.json`, 'utf8'));
+              if (['reproduced', 'blocked-by-control', 'inconclusive'].includes(raw.outcome)) outcome = raw.outcome;
+              else notes.push('Witness returned an unsupported structured outcome.');
+            } catch (error) {
+              notes.push(`Witness did not return valid structured JSON: ${error.message}`.slice(0, 500));
+            }
+          } else {
+            notes.push(`Witness process exited ${exitCode}; process failures are inconclusive.`);
+          }
+          const result = {
+            schemaVersion: '0.1',
+            phase: process.env.PHASE,
+            riskId: process.env.RISK_ID,
+            revision: process.env.REVISION,
+            witnessDigest: actualDigest,
+            outcome,
+            exitCode,
+            notes
+          };
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/hedge-outcome/${process.env.PHASE}.json`, `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hedge-witness-result-${{ matrix.phase }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-outcome/${{ matrix.phase }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  legitimate-behavior:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies without lifecycle scripts
+        timeout-minutes: 8
+        run: |
+          if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
+      - name: Run legitimate behavior without network or credentials
+        env:
+          SCRIPT: ${{ needs.validate-inputs.outputs.legitimate_script }}
+          IMAGE: ${{ env.HEDGE_WITNESS_IMAGE }}
+          REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
+        run: |
+          docker pull "$IMAGE"
+          set +e
+          docker run --rm --network none --memory 1g --cpus 2 \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/workspace:rw" \
+            -w /workspace \
+            "$IMAGE" timeout 300s npm run "$SCRIPT"
+          legitimate_exit=$?
+          set -e
+          mkdir -p "$RUNNER_TEMP/hedge-legitimate"
+          LEGITIMATE_EXIT="$legitimate_exit" node <<'NODE'
+          const fs = require('fs');
+          const exitCode = Number(process.env.LEGITIMATE_EXIT);
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/hedge-legitimate/result.json`, `${JSON.stringify({
+            schemaVersion: '0.1',
+            repairedRevision: process.env.REPAIRED_SHA,
+            passed: exitCode === 0,
+            exitCode
+          }, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hedge-legitimate-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/hedge-legitimate/result.json
+          if-no-files-found: error
+          retention-days: 30
+
+  architecture-delta:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Materialize policy, context, and state from the trusted branch
+        env:
+          STATE_SHA: ${{ needs.validate-inputs.outputs.state_sha }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { execFileSync } = require('child_process');
+          if (fs.existsSync('.hedge') && !fs.lstatSync('.hedge').isDirectory()) {
+            fs.rmSync('.hedge', { force: true, recursive: true });
+          }
+          const readTrusted = (relative, required) => {
+            try {
+              return execFileSync('git', ['show', `${process.env.STATE_SHA}:${relative}`], { maxBuffer: 5_000_000 });
+            } catch (error) {
+              if (required) throw error;
+              return undefined;
+            }
+          };
+          for (const [relative, required] of [['.hedge.yml', true], ['.hedge/context.yml', false], ['threatmodel.json', true]]) {
+            const bytes = readTrusted(relative, required);
+            if (!bytes) { fs.rmSync(relative, { force: true, recursive: true }); continue; }
+            const target = path.resolve(relative);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.rmSync(target, { force: true, recursive: true });
+            fs.writeFileSync(target, bytes, { mode: 0o600 });
+          }
+          NODE
+      - name: Build exact offline architecture delta
+        id: hedge
+        uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
+        with:
+          command: check
+          base-ref: ${{ needs.validate-inputs.outputs.vulnerable_sha }}
+          head-ref: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          offline: true
+          dry-run: true
+      - name: Derive evidence-linked architecture proof
+        env:
+          DELTA_PATH: ${{ steps.hedge.outputs.delta-path }}
+          COVERAGE_STATUS: ${{ steps.hedge.outputs.coverage-status }}
+          ANALYSIS_STATUS: ${{ steps.hedge.outputs.analysis-status }}
+          RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+          BASE_SHA: ${{ needs.validate-inputs.outputs.vulnerable_sha }}
+          HEAD_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          STATE_SHA: ${{ needs.validate-inputs.outputs.state_sha }}
+        run: |
+          node <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const { execFileSync } = require('child_process');
+          if (process.env.COVERAGE_STATUS !== 'complete' || process.env.ANALYSIS_STATUS !== 'complete') {
+            throw new Error('Architecture verification requires complete exact-revision analysis.');
+          }
+          const deltaBytes = fs.readFileSync(process.env.DELTA_PATH);
+          if (deltaBytes.length > 5_000_000) throw new Error('Architecture delta exceeds verification budget.');
+          const delta = JSON.parse(deltaBytes.toString('utf8'));
+          const registerBytes = execFileSync('git', ['show', `${process.env.STATE_SHA}:threatmodel.json`], { maxBuffer: 5_000_000 });
+          const register = JSON.parse(registerBytes.toString('utf8'));
+          const finding = register.findings?.find((item) => item.id === process.env.RISK_ID);
+          if (!finding) throw new Error(`${process.env.RISK_ID} was not found in trusted state.`);
+          const riskFiles = new Set((finding.evidence || []).map((item) => item.file));
+          const terms = [finding.entryPoint, ...(finding.attackPath || [])]
+            .filter(Boolean).map((value) => value.trim().toLowerCase()).filter((value) => value.length >= 4);
+          const nodes = [
+            ...(delta.addedNodes || []), ...(delta.removedNodes || []),
+            ...(delta.changedNodes || []).flatMap((pair) => [pair.before, pair.after])
+          ];
+          const relevantIds = new Set(nodes.filter((node) => {
+            const id = String(node.id || '').toLowerCase();
+            const label = String(node.label || '').toLowerCase();
+            return terms.some((term) => id === term || label === term || id.includes(term) || label.includes(term)) ||
+              (node.evidence || []).some((item) => riskFiles.has(item.file));
+          }).map((node) => node.id));
+          const stable = (value) => JSON.stringify(value);
+          const controlFacts = (value) => (value.controls || []).map((item) => ({ type: item.type, label: item.label, assurance: item.assurance }));
+          const proofs = [];
+          for (const pair of delta.changedNodes || []) {
+            if (!relevantIds.has(pair.before.id)) continue;
+            if (pair.before.kind !== pair.after.kind || pair.before.label !== pair.after.label ||
+                pair.before.trustZone !== pair.after.trustZone || stable(controlFacts(pair.before)) !== stable(controlFacts(pair.after))) {
+              proofs.push({ subjectId: pair.after.id, before: pair.before, after: pair.after });
+            }
+          }
+          for (const node of delta.removedNodes || []) {
+            if (relevantIds.has(node.id)) proofs.push({ subjectId: node.id, before: node });
+          }
+          const relevantEdge = (edge) => relevantIds.has(edge.from) || relevantIds.has(edge.to) ||
+            (edge.evidence || []).some((item) => riskFiles.has(item.file));
+          for (const pair of delta.changedEdges || []) {
+            if (relevantEdge(pair.before) || relevantEdge(pair.after)) proofs.push({ subjectId: pair.after.id, before: pair.before, after: pair.after });
+          }
+          for (const edge of delta.removedEdges || []) if (relevantEdge(edge)) proofs.push({ subjectId: edge.id, before: edge });
+          for (const edge of delta.addedEdges || []) if (relevantEdge(edge)) proofs.push({ subjectId: edge.id, after: edge });
+          const exact = (items, snapshot, commit, subjectId) => (items || []).map((item) => ({ ...item, snapshot, commit, subjectId }));
+          const evidence = proofs.flatMap((item) => [
+            ...exact(item.before?.evidence, 'base', process.env.BASE_SHA, item.subjectId),
+            ...exact(item.after?.evidence, 'head', process.env.HEAD_SHA, item.subjectId)
+          ]);
+          const unique = [...new Map(evidence.map((item) => [
+            [item.snapshot, item.commit, item.subjectId, item.file, item.line || '', item.extractor].join('\0'), item
+          ])).values()];
+          fs.mkdirSync('.hedge/verification', { recursive: true });
+          fs.writeFileSync('.hedge/verification/architecture.json', `${JSON.stringify({
+            schemaVersion: '0.1',
+            riskId: process.env.RISK_ID,
+            vulnerableRevision: process.env.BASE_SHA,
+            repairedRevision: process.env.HEAD_SHA,
+            graphDeltaDigest: crypto.createHash('sha256').update(deltaBytes).digest('hex'),
+            architectureControlChanged: proofs.length > 0 && unique.length > 0,
+            architectureEvidence: unique
+          }, null, 2)}\n`, { mode: 0o600 });
+          NODE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: hedge-architecture-proof-${{ github.run_id }}
+          path: .hedge/verification/architecture.json
+          if-no-files-found: error
+          retention-days: 30
+
+  aggregate-evidence:
+    needs:
+      - validate-inputs
+      - prepare-witness
+      - witness-counterfactual
+      - legitimate-behavior
+      - architecture-delta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: hedge-witness-result-*-${{ github.run_id }}
+          path: ${{ runner.temp }}/verification
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: hedge-legitimate-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/verification/legitimate
+      - uses: actions/download-artifact@v8
+        with:
+          name: hedge-architecture-proof-${{ github.run_id }}
+          path: ${{ runner.temp }}/verification/architecture
+      - name: Aggregate in a fresh trusted workspace
+        env:
+          RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+          VULNERABLE_SHA: ${{ needs.validate-inputs.outputs.vulnerable_sha }}
+          REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          EXPECTED_WITNESS_DIGEST: ${{ needs.prepare-witness.outputs.witness_digest }}
         run: |
           mkdir -p .hedge/verification
           node <<'NODE'
           const fs = require('fs');
-          const path = `.hedge/verification/${process.env.RISK_ID}.json`;
+          const path = require('path');
+          const root = process.env.RUNNER_TEMP + '/verification';
+          const read = (name) => {
+            const bytes = fs.readFileSync(path.join(root, name));
+            if (bytes.length > 1_000_000) throw new Error(`${name} exceeds the verification evidence budget.`);
+            return JSON.parse(bytes.toString('utf8'));
+          };
+          const vulnerable = read('vulnerable.json');
+          const repaired = read('repaired.json');
+          const legitimate = read('legitimate/result.json');
+          const architecture = read('architecture/architecture.json');
+          for (const [result, phase, revision] of [
+            [vulnerable, 'vulnerable', process.env.VULNERABLE_SHA],
+            [repaired, 'repaired', process.env.REPAIRED_SHA]
+          ]) {
+            if (result.phase !== phase || result.revision !== revision || result.riskId !== process.env.RISK_ID) {
+              throw new Error(`Witness ${phase} result binding failed.`);
+            }
+            if (result.witnessDigest !== process.env.EXPECTED_WITNESS_DIGEST) {
+              throw new Error(`Witness ${phase} digest binding failed.`);
+            }
+            if (!['reproduced', 'blocked-by-control', 'inconclusive'].includes(result.outcome)) {
+              throw new Error(`Witness ${phase} outcome is invalid.`);
+            }
+          }
+          if (legitimate.repairedRevision !== process.env.REPAIRED_SHA || typeof legitimate.passed !== 'boolean') {
+            throw new Error('Legitimate-behavior result binding failed.');
+          }
+          if (architecture.riskId !== process.env.RISK_ID ||
+              architecture.vulnerableRevision !== process.env.VULNERABLE_SHA ||
+              architecture.repairedRevision !== process.env.REPAIRED_SHA ||
+              !/^[a-f0-9]{64}$/.test(architecture.graphDeltaDigest)) {
+            throw new Error('Architecture proof binding failed.');
+          }
           const evidence = {
             recordedBy: process.env.GITHUB_ACTOR,
-            vulnerableRevision: process.env.VULNERABLE_REF,
-            repairedRevision: process.env.REPAIRED_REF,
-            vulnerableRevisionWitnessSucceeded: true,
-            repairedRevisionWitnessBlocked: true,
-            legitimateBehaviorPassed: true,
-            architectureControlChanged: false,
-            commands: [`npm run ${process.env.WITNESS}`, `npm run ${process.env.LEGITIMATE}`],
-            notes: ['Architecture-control confirmation is recorded separately from executable behavior.'],
-            artifacts: []
+            vulnerableRevision: process.env.VULNERABLE_SHA,
+            repairedRevision: process.env.REPAIRED_SHA,
+            witnessDigest: process.env.EXPECTED_WITNESS_DIGEST,
+            vulnerableOutcome: vulnerable.outcome,
+            repairedOutcome: repaired.outcome,
+            vulnerableRevisionWitnessSucceeded: vulnerable.outcome === 'reproduced',
+            repairedRevisionWitnessBlocked: repaired.outcome === 'blocked-by-control',
+            legitimateBehaviorPassed: legitimate.passed,
+            architectureControlChanged: architecture.architectureControlChanged === true,
+            graphDeltaDigest: architecture.graphDeltaDigest,
+            architectureEvidence: architecture.architectureEvidence || [],
+            commands: ['immutable reviewed witness bundle', 'network-isolated legitimate behavior', 'exact offline architecture diff'],
+            notes: [
+              ...((vulnerable.notes || []).map(String)),
+              ...((repaired.notes || []).map(String))
+            ].map((value) => value.slice(0, 500)).slice(0, 10),
+            artifacts: [
+              `hedge-witness-result-vulnerable-${process.env.GITHUB_RUN_ID}`,
+              `hedge-witness-result-repaired-${process.env.GITHUB_RUN_ID}`,
+              `hedge-architecture-proof-${process.env.GITHUB_RUN_ID}`
+            ]
           };
-          fs.writeFileSync(path, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+          fs.writeFileSync(`.hedge/verification/${process.env.RISK_ID}.json`, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
           NODE
       - uses: actions/upload-artifact@v7
         with:
-          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}
+          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/verification/*.json
+          if-no-files-found: error
           retention-days: 30
 
   record-state:
-    needs: [validate-inputs, vulnerable-witness, repaired-verification]
+    needs: [validate-inputs, aggregate-evidence]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -159,7 +542,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v8
         with:
-          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}
+          name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/verification
       - name: Record lifecycle evidence in trusted state
         uses: YOUR_ORG/hedge@PINNED_COMMIT_SHA
@@ -167,22 +550,28 @@ jobs:
           command: verify
           risk-id: ${{ needs.validate-inputs.outputs.risk_id }}
           verification-evidence: .hedge/verification/${{ needs.validate-inputs.outputs.risk_id }}.json
-          architecture-control-changed: ${{ inputs.architecture_control_changed }}
           actor: ${{ github.actor }}
-      - name: Open reviewable verification-state PR
+      - name: Open one reviewable verification-state PR
         env:
           GH_TOKEN: ${{ github.token }}
           RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
+          REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
+          STATE_REF: ${{ inputs.state_ref }}
         run: |
           if git diff --quiet -- threatmodel.json THREATMODEL.md; then
             echo "No state change was produced."
             exit 0
           fi
-          BRANCH="hedge/verify-${RISK_ID,,}-${GITHUB_RUN_ID}"
+          BRANCH="hedge/verify-${RISK_ID,,}-${REPAIRED_SHA:0:12}"
+          existing="$(gh pr list --state all --head "$BRANCH" --json url --jq '.[0].url // empty')"
+          if [[ -n "$existing" ]]; then
+            echo "Verification state PR already exists: $existing"
+            exit 0
+          fi
           git switch -c "$BRANCH"
           git config user.name "hedge-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add threatmodel.json THREATMODEL.md
           git commit -m "chore: record verification for ${RISK_ID}"
           git push origin "$BRANCH"
-          gh pr create --base "${{ inputs.state_ref }}" --head "$BRANCH" --title "Hedge: record verification for ${RISK_ID}" --body "Records executable counterfactual evidence. The risk is verified only when the witness is blocked, legitimate behavior passes, and the architecture-control change is confirmed."
+          gh pr create --base "$STATE_REF" --head "$BRANCH" --title "Hedge: record verification for ${RISK_ID}" --body "Records immutable-witness counterfactual evidence. Verification requires reproduction, blocking by the intended control, legitimate success, and an exact evidence-linked architecture change."

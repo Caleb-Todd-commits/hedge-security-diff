@@ -92,4 +92,77 @@ describe("semantic graph identity", () => {
     ).toBe("middleware.ts");
     expect(publicRoute?.controls.some((control) => control.type === "authentication")).toBe(false);
   });
+
+  it("does not claim protection from a dynamic Next.js middleware matcher", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-next-dynamic-matcher-"));
+    const config = parseConfigText("framework: nextjs\n");
+    await mkdir(join(root, "app", "api", "private"), { recursive: true });
+    await writeFile(
+      join(root, "middleware.ts"),
+      `export default auth((request: Request) => NextResponse.next());
+       const matcher = process.env.MIDDLEWARE_MATCHER;
+       export const config = { matcher };`
+    );
+    await writeFile(
+      join(root, "app", "api", "private", "route.ts"),
+      `export async function GET(){ return Response.json({ ok: true }); }`
+    );
+
+    const graph = await buildAttackSurfaceGraph({ root, config });
+    const route = graph.nodes.find((node) => node.label === "GET /api/private");
+    expect(route?.controls.some((control) => control.type === "authentication")).toBe(false);
+    expect(graph.coverage?.status).toBe("partial");
+    expect(graph.coverage?.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unsupported-dynamic-matcher", file: "middleware.ts" })
+    );
+  });
+
+  it("marks unresolved control helpers as inferred and coverage as partial", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-unresolved-helper-"));
+    const config = parseConfigText("framework: nextjs\n");
+    await writeRoute(
+      root,
+      `import { requireAuth } from "@/auth";
+       export async function POST() {
+         await requireAuth();
+         return Response.json({ ok: true });
+       }`
+    );
+
+    const graph = await buildAttackSurfaceGraph({ root, config });
+    const route = graph.nodes.find((node) => node.label === "POST /api/items");
+    expect(route?.controls.find((control) => control.type === "authentication")?.assurance).toBe(
+      "inferred"
+    );
+    expect(graph.coverage?.status).toBe("partial");
+    expect(graph.coverage?.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unresolved-control-helper" })
+    );
+  });
+
+  it("records malformed TypeScript as parser coverage loss", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-parser-loss-"));
+    const config = parseConfigText("framework: nextjs\n");
+    await writeRoute(root, `export async function POST( { return Response.json({ ok: true });`);
+    const graph = await buildAttackSurfaceGraph({ root, config });
+    expect(graph.coverage?.status).toBe("partial");
+    expect(graph.coverage?.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "typescript-parser-diagnostic" })
+    );
+  });
+
+  it("records unresolved imported route handlers as partial coverage", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-imported-handler-"));
+    const config = parseConfigText("framework: nextjs\n");
+    await writeRoute(
+      root,
+      `import { handler } from "./handler";
+       export { handler as POST };`
+    );
+    const graph = await buildAttackSurfaceGraph({ root, config });
+    expect(graph.coverage?.status).toBe("partial");
+    expect(graph.coverage?.diagnostics).toContainEqual(
+      expect.objectContaining({ code: "unresolved-imported-route-handler" })
+    );
+  });
 });

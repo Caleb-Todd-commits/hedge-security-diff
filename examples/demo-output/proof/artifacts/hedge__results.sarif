@@ -7,7 +7,7 @@
         "driver": {
           "name": "Hedge",
           "informationUri": "https://github.com/hedge-security/hedge",
-          "semanticVersion": "0.4.0",
+          "semanticVersion": "0.5.2",
           "rules": [
             {
               "id": "HEDGE-001",
@@ -56,7 +56,7 @@
               },
               "help": {
                 "text": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
-                "markdown": "### New storage write crosses a trust boundary without complete upload controls\n\n**Security invariant:** Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\n\n**Attack path:** External user → POST /api/files/upload → Storage write\n\n**Missing controls:** Verified authentication, Payload or file size limit, Object ownership constraint"
+                "markdown": "### New storage write crosses a trust boundary without complete upload controls\n\n**Security invariant:** Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\n\n**Attack path:** External user → POST /api/files/upload → Storage write\n\n**Missing controls:** Verified authentication, Payload or file size limit, Content type allowlist, Object ownership constraint"
               },
               "defaultConfiguration": {
                 "level": "error"
@@ -93,7 +93,11 @@
             "untrustedInstructionsObserved": false,
             "limitations": [
               "GPT-5.6 architectural interpretation was not run."
-            ]
+            ],
+            "decision": "block",
+            "observationCount": 3,
+            "inferenceCount": 2,
+            "invariantEvaluations": []
           }
         }
       ],
@@ -114,7 +118,7 @@
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "startLine": 4,
+                  "startLine": 3,
                   "snippet": {
                     "text": "export async function POST(request: Request) {"
                   }
@@ -137,9 +141,7 @@
             "entryPoint": "POST /api/files/upload",
             "trustBoundary": "Public network to application",
             "attackerCapability": "Unauthenticated network access",
-            "existingControls": [
-              "Content type allowlist"
-            ],
+            "existingControls": [],
             "missingControls": [
               "Verified authentication",
               "Authorization scoped to the target resource"
@@ -170,7 +172,7 @@
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "startLine": 4,
+                  "startLine": 3,
                   "snippet": {
                     "text": "export async function POST(request: Request) {"
                   }
@@ -187,7 +189,7 @@
                   "uriBaseId": "%SRCROOT%"
                 },
                 "region": {
-                  "startLine": 13,
+                  "startLine": 6,
                   "snippet": {
                     "text": "await client.send("
                   }
@@ -199,11 +201,11 @@
             }
           ],
           "partialFingerprints": {
-            "hedgeFinding/v1": "95625c5659d7e5392705225f"
+            "hedgeFinding/v1": "ce45a670a30a55124424033b"
           },
           "properties": {
             "hedgeRiskId": "HEDGE-002",
-            "fingerprint": "95625c5659d7e5392705225f",
+            "fingerprint": "ce45a670a30a55124424033b",
             "origin": "deterministic",
             "status": "open",
             "severity": "high",
@@ -212,12 +214,11 @@
             "entryPoint": "POST /api/files/upload",
             "trustBoundary": "public to data",
             "attackerCapability": "Submit attacker-controlled content to the new entry point",
-            "existingControls": [
-              "Content type allowlist"
-            ],
+            "existingControls": [],
             "missingControls": [
               "Verified authentication",
               "Payload or file size limit",
+              "Content type allowlist",
               "Object ownership constraint"
             ],
             "suggestedTest": {

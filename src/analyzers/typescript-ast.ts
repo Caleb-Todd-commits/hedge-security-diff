@@ -36,6 +36,7 @@ export interface AstControl {
   label: string;
   line: number;
   confidence: number;
+  assurance?: "confirmed" | "inferred" | "unknown";
 }
 
 export interface AstEntrypoint {
@@ -52,6 +53,7 @@ export interface AstEntrypoint {
 export interface AstMiddlewareRule {
   framework: "nextjs";
   matchers: string[];
+  matcherStatus: "global" | "static" | "unknown";
   controls: AstControl[];
   line: number;
   sourcePath: string;
@@ -349,7 +351,14 @@ function analyzeHandler(
       const line = lineOf(source, current);
 
       const control = classifyControlCall(simpleName, callee, current, source, line);
-      if (control) controls.push(control);
+      if (control) {
+        const unresolvedIdentifierCall =
+          ts.isIdentifier(current.expression) && !functions.has(current.expression.text);
+        controls.push({
+          ...control,
+          assurance: unresolvedIdentifierCall ? "inferred" : (control.assurance ?? "confirmed")
+        });
+      }
 
       const operation = classifyOperationCall(
         current,
@@ -391,7 +400,8 @@ function analyzeHandler(
           type: "ownership",
           label: "Resource ownership derivation",
           line: lineOf(source, current),
-          confidence: 0.84
+          confidence: 0.84,
+          assurance: "confirmed"
         });
       }
     }
@@ -404,7 +414,8 @@ function analyzeHandler(
           type: "authorization",
           label: "Authorization or role comparison",
           line,
-          confidence: 0.86
+          confidence: 0.86,
+          assurance: "confirmed"
         });
       }
       if (/\b(ownerId|userId|tenantId|accountId)\b/i.test(text)) {
@@ -412,7 +423,8 @@ function analyzeHandler(
           type: "ownership",
           label: "Resource ownership comparison",
           line,
-          confidence: 0.86
+          confidence: 0.86,
+          assurance: "confirmed"
         });
       }
       if (/\b(file\.size|content-length|maxFileSize|sizeLimit)\b/i.test(text)) {
@@ -420,7 +432,8 @@ function analyzeHandler(
           type: "size-limit",
           label: "Payload or file size limit",
           line,
-          confidence: 0.9
+          confidence: 0.9,
+          assurance: "confirmed"
         });
       }
     }
@@ -441,7 +454,7 @@ function extractNextMiddlewareRules(
   source: ts.SourceFile,
   functions: Map<string, ts.FunctionLikeDeclaration>
 ): AstMiddlewareRule[] {
-  const matchers = extractNextMiddlewareMatchers(source);
+  const matcherResult = extractNextMiddlewareMatchers(source);
   const controls: AstControl[] = [];
   let line = 1;
 
@@ -470,10 +483,22 @@ function extractNextMiddlewareRules(
 
   const sourced = dedupeControls(controls).map((control) => ({ ...control, sourcePath }));
   if (!sourced.length) return [];
-  return [{ framework: "nextjs", matchers, controls: sourced, line, sourcePath }];
+  return [
+    {
+      framework: "nextjs",
+      matchers: matcherResult.matchers,
+      matcherStatus: matcherResult.status,
+      controls: sourced,
+      line,
+      sourcePath
+    }
+  ];
 }
 
-function extractNextMiddlewareMatchers(source: ts.SourceFile): string[] {
+function extractNextMiddlewareMatchers(source: ts.SourceFile): {
+  matchers: string[];
+  status: AstMiddlewareRule["matcherStatus"];
+} {
   for (const statement of source.statements) {
     if (!ts.isVariableStatement(statement) || !hasExportModifier(statement)) continue;
     for (const declaration of statement.declarationList.declarations) {
@@ -481,20 +506,36 @@ function extractNextMiddlewareMatchers(source: ts.SourceFile): string[] {
       if (!declaration.initializer || !ts.isObjectLiteralExpression(declaration.initializer))
         continue;
       for (const property of declaration.initializer.properties) {
-        if (!ts.isPropertyAssignment(property)) continue;
+        if (!property.name) continue;
         const name = property.name.getText(source).replace(/["'`]/g, "");
         if (name !== "matcher") continue;
+        if (!ts.isPropertyAssignment(property)) {
+          return { matchers: [], status: "unknown" };
+        }
         const direct = staticString(property.initializer);
-        if (direct) return [direct];
+        if (direct) {
+          return {
+            matchers: [direct],
+            status: nextMatcherRegex(direct) ? "static" : "unknown"
+          };
+        }
         if (ts.isArrayLiteralExpression(property.initializer)) {
-          return property.initializer.elements
+          const matchers = property.initializer.elements
             .map((element) => (ts.isExpression(element) ? staticString(element) : undefined))
             .filter((value): value is string => Boolean(value));
+          if (
+            matchers.length !== property.initializer.elements.length ||
+            matchers.some((matcher) => !nextMatcherRegex(matcher))
+          ) {
+            return { matchers, status: "unknown" };
+          }
+          return { matchers, status: "static" };
         }
+        return { matchers: [], status: "unknown" };
       }
     }
   }
-  return [];
+  return { matchers: [], status: "global" };
 }
 
 export function nextMiddlewareMatchesPath(matchers: string[], routePath: string): boolean {
@@ -640,7 +681,8 @@ function wrapperControl(name: string, line: number): AstControl | null {
       type: "authentication",
       label: `Authentication wrapper: ${name}`,
       line,
-      confidence: 0.9
+      confidence: 0.9,
+      assurance: "inferred"
     };
   }
   if (/^(withRole|requireRole|withPermission|authorize|adminOnly)$/i.test(name)) {
@@ -648,14 +690,27 @@ function wrapperControl(name: string, line: number): AstControl | null {
       type: "authorization",
       label: `Authorization wrapper: ${name}`,
       line,
-      confidence: 0.88
+      confidence: 0.88,
+      assurance: "inferred"
     };
   }
   if (/^(rateLimit|withRateLimit|throttle)$/i.test(name)) {
-    return { type: "rate-limit", label: `Rate-limit wrapper: ${name}`, line, confidence: 0.86 };
+    return {
+      type: "rate-limit",
+      label: `Rate-limit wrapper: ${name}`,
+      line,
+      confidence: 0.86,
+      assurance: "inferred"
+    };
   }
   if (/^(validate|withValidation|validateBody)$/i.test(name)) {
-    return { type: "validation", label: `Validation wrapper: ${name}`, line, confidence: 0.84 };
+    return {
+      type: "validation",
+      label: `Validation wrapper: ${name}`,
+      line,
+      confidence: 0.84,
+      assurance: "inferred"
+    };
   }
   return null;
 }

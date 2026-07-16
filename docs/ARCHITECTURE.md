@@ -6,10 +6,10 @@ On a PR, Hedge loads these from the **base SHA** through the GitHub API:
 
 - `.hedge.yml`
 - `.hedge/context.yml`
-- `threatmodel.json`
+- `threatmodel.json` for integrity-checked lifecycle state
 - bounded PR patches
 
-The checked-out PR head is treated as source evidence only. A contributor cannot weaken the failure threshold, expand token budgets, erase the baseline, or replace reviewed context in their own review.
+The exact base and head source bytes are read from Git objects without checkout, filters, hooks, or target execution. The checked-out PR head supplies the object database only. A contributor cannot weaken the failure threshold, expand token budgets, erase the baseline, or replace reviewed context in their own review.
 
 ## 2. Repository collector
 
@@ -46,7 +46,7 @@ code before → code after
 attack surface before → attack surface after
 ```
 
-No meaningful graph delta means no model call, no comment, and a green check.
+No meaningful graph delta means no model call and no new comment. It is a confirmed no-delta result only when both revisions are exact and supported coverage is complete; otherwise the run records degraded/failed health without claiming safety.
 
 ## 7. Explicit security invariants
 
@@ -61,6 +61,7 @@ Hedge does not collapse the analysis into one model-authored verdict:
 3. **Decisions** record whether the run is allowed, warned, or blocked and identify the threshold, invariant, policy, or human action responsible.
 
 The GitHub Action fails from the recorded decision, not from free-form model text.
+Model-origin findings remain reviewable inferences but cannot directly create a blocking decision.
 
 ## 9. GPT-5.6 router
 
@@ -75,15 +76,26 @@ The GitHub Action fails from the recorded decision, not from free-form model tex
 
 `threatmodel.json` holds the graph, next risk number, findings, lifecycle state, verification history, and accepted-risk audit trail. PR reports are idempotent and include a hidden machine-readable payload for the authorized Codex command workflow.
 
-## 11. Remediation split
+## 11. Credential-separated PR pipeline
 
-The `@hedge fix HEDGE-NNN` example uses three jobs:
+The installed workflow uses three artifact-bound jobs:
+
+1. **Collect:** read-only GitHub authority, exact base/head extraction, deterministic analysis, coverage/health recording, and RunManifest creation in a runner-owned temporary directory; no OpenAI key or target execution.
+2. **Reason:** no target checkout and no GitHub write authority; validates the immutable collection manifest before Luna/Sol or deterministic fallback and emits only a strict reason bundle plus its manifest into a separate temporary directory.
+3. **Publish:** no OpenAI credential; independently downloads the original collection and reason artifacts, validates schemas, byte limits, SHA-256 digests, exact repository/PR/workflow/Action bindings, and the freshly re-fetched PR head before rendering one idempotent report.
+
+Confirmed no-delta skips the reasoning job entirely and removes a stale Hedge report. Partial or unsupported no-change observations remain silent but do not erase prior complete output.
+
+## 12. Remediation split
+
+The `@hedge fix HEDGE-NNN` example uses four authority-separated jobs:
 
 1. **Authorize:** strict command parsing, write-permission check, same-repository PR check, trusted Hedge-report extraction.
 2. **Remediate:** read-only GitHub permissions, non-persisted checkout credentials, `openai/codex-action@v1`, workspace-write sandbox, and no push.
-3. **Publish:** no OpenAI credential, applies only the produced binary patch, creates a dedicated branch, and opens a draft PR.
+3. **Validate:** no OpenAI credential or write authority, rejects unsafe/bounded patch forms, applies the patch, and runs target validation in a constrained later job.
+4. **Publish:** no OpenAI credential, rechecks the authorized head and validated digest, creates a dedicated branch, and opens exactly one draft PR.
 
-## 12. Verification
+## 13. Verification
 
 A separate workflow receives no OpenAI credential. It requires:
 

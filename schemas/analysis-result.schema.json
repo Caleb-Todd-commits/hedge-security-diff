@@ -8,6 +8,115 @@
     "surfaceChanged": {
       "type": "boolean"
     },
+    "confirmedNoDelta": {
+      "type": "boolean"
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["complete", "partial", "unsupported"]
+        },
+        "discoveredFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "includedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "includedBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "omitted": {
+          "type": "object",
+          "properties": {
+            "fileLimit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "byteLimit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "unsafeOrUnreadable": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "binary": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["fileLimit", "byteLimit", "unsafeOrUnreadable", "binary"],
+          "additionalProperties": false
+        },
+        "diagnostics": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string",
+                "enum": ["collection", "parsing", "framework", "patch", "analysis"]
+              },
+              "message": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              },
+              "snapshot": {
+                "type": "string",
+                "enum": ["base", "head"]
+              }
+            },
+            "required": ["code", "phase", "message"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "status",
+        "discoveredFiles",
+        "includedFiles",
+        "includedBytes",
+        "omitted",
+        "diagnostics"
+      ],
+      "additionalProperties": false
+    },
+    "analysisHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["complete", "degraded", "failed"]
+        },
+        "reasons": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["status", "reasons"],
+      "additionalProperties": false
+    },
     "observations": {
       "type": "array",
       "items": {
@@ -64,6 +173,13 @@
                   "type": "string"
                 },
                 "commit": {
+                  "type": "string"
+                },
+                "snapshot": {
+                  "type": "string",
+                  "enum": ["base", "head"]
+                },
+                "subjectId": {
                   "type": "string"
                 }
               },
@@ -151,7 +267,7 @@
           },
           "source": {
             "type": "string",
-            "enum": ["threshold", "invariant", "policy", "human", "lifecycle"]
+            "enum": ["threshold", "invariant", "policy", "human", "lifecycle", "analysis-health"]
           },
           "riskFingerprints": {
             "default": [],
@@ -266,6 +382,13 @@
                   "type": "string"
                 },
                 "commit": {
+                  "type": "string"
+                },
+                "snapshot": {
+                  "type": "string",
+                  "enum": ["base", "head"]
+                },
+                "subjectId": {
                   "type": "string"
                 }
               },
@@ -414,6 +537,13 @@
                 },
                 "commit": {
                   "type": "string"
+                },
+                "snapshot": {
+                  "type": "string",
+                  "enum": ["base", "head"]
+                },
+                "subjectId": {
+                  "type": "string"
                 }
               },
               "required": ["file", "extractor"],
@@ -483,6 +613,62 @@
                 "architectureControlChanged": {
                   "type": "boolean"
                 },
+                "witnessDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "vulnerableOutcome": {
+                  "type": "string",
+                  "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+                },
+                "repairedOutcome": {
+                  "type": "string",
+                  "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+                },
+                "graphDeltaDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "architectureEvidence": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "snippet": {
+                        "type": "string"
+                      },
+                      "extractor": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "type": "string"
+                      },
+                      "snapshot": {
+                        "type": "string",
+                        "enum": ["base", "head"]
+                      },
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["file", "extractor"],
+                    "additionalProperties": false
+                  }
+                },
                 "commands": {
                   "default": [],
                   "type": "array",
@@ -512,6 +698,7 @@
                 "repairedRevisionWitnessBlocked",
                 "legitimateBehaviorPassed",
                 "architectureControlChanged",
+                "architectureEvidence",
                 "commands",
                 "notes",
                 "artifacts"

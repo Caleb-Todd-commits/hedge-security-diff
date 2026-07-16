@@ -27,6 +27,62 @@
     "architectureControlChanged": {
       "type": "boolean"
     },
+    "witnessDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "vulnerableOutcome": {
+      "type": "string",
+      "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+    },
+    "repairedOutcome": {
+      "type": "string",
+      "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+    },
+    "graphDeltaDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "architectureEvidence": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "endLine": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snippet": {
+            "type": "string"
+          },
+          "extractor": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string",
+            "enum": ["base", "head"]
+          },
+          "subjectId": {
+            "type": "string"
+          }
+        },
+        "required": ["file", "extractor"],
+        "additionalProperties": false
+      }
+    },
     "commands": {
       "default": [],
       "type": "array",
@@ -56,6 +112,7 @@
     "repairedRevisionWitnessBlocked",
     "legitimateBehaviorPassed",
     "architectureControlChanged",
+    "architectureEvidence",
     "commands",
     "notes",
     "artifacts"

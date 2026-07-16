@@ -26,9 +26,7 @@
         "Privileged application operation"
       ],
       "potentialImpact": "An unauthenticated actor may invoke a state-changing operation.",
-      "existingControls": [
-        "Content type allowlist"
-      ],
+      "existingControls": [],
       "missingControls": [
         "Verified authentication",
         "Authorization scoped to the target resource"
@@ -37,9 +35,12 @@
       "evidence": [
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 4,
+          "line": 3,
           "snippet": "export async function POST(request: Request) {",
-          "extractor": "nextjs-ast-route"
+          "extractor": "nextjs-ast-route",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "entrypoint:7821443e29938cb4"
         }
       ],
       "confidence": 0.9,
@@ -52,12 +53,12 @@
       },
       "remediationPrompt": "Remediate this evidence-backed Hedge finding: New mutating entry point has no detected authentication control.\nSecurity invariant: Only authenticated and authorized principals may invoke POST /api/files/upload.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Authorization scoped to the target resource.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
       "verificationHistory": [],
-      "createdAt": "2026-07-15T01:09:45.013Z",
-      "updatedAt": "2026-07-15T01:09:45.013Z"
+      "createdAt": "2026-07-16T07:07:04.759Z",
+      "updatedAt": "2026-07-16T07:07:04.759Z"
     },
     {
       "id": "HEDGE-002",
-      "fingerprint": "95625c5659d7e5392705225f",
+      "fingerprint": "ce45a670a30a55124424033b",
       "title": "New storage write crosses a trust boundary without complete upload controls",
       "severity": "high",
       "origin": "deterministic",
@@ -80,27 +81,32 @@
         "Storage write"
       ],
       "potentialImpact": "Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
-      "existingControls": [
-        "Content type allowlist"
-      ],
+      "existingControls": [],
       "missingControls": [
         "Verified authentication",
         "Payload or file size limit",
+        "Content type allowlist",
         "Object ownership constraint"
       ],
       "securityInvariant": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
       "evidence": [
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 4,
+          "line": 3,
           "snippet": "export async function POST(request: Request) {",
-          "extractor": "nextjs-ast-route"
+          "extractor": "nextjs-ast-route",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "entrypoint:7821443e29938cb4"
         },
         {
           "file": "app/api/files/upload/route.ts",
-          "line": 13,
+          "line": 6,
           "snippet": "await client.send(",
-          "extractor": "typescript-ast-operation"
+          "extractor": "typescript-ast-operation",
+          "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+          "snapshot": "head",
+          "subjectId": "storage:ac193b90989396d6"
         }
       ],
       "confidence": 0.9,
@@ -111,10 +117,10 @@
         "purpose": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
         "code": "it(\"enforces upload boundaries for POST /api/files/upload\", async () => {\n  const response = await uploadFixture({ type: \"application/x-executable\", bytes: MAX_ALLOWED_BYTES + 1 });\n  expect([400, 413, 415]).toContain(response.status);\n});"
       },
-      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+      "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Content type allowlist, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
       "verificationHistory": [],
-      "createdAt": "2026-07-15T01:09:45.014Z",
-      "updatedAt": "2026-07-15T01:09:45.014Z"
+      "createdAt": "2026-07-16T07:07:04.759Z",
+      "updatedAt": "2026-07-16T07:07:04.759Z"
     }
   ],
   "lifecycleUpdates": [],
@@ -128,26 +134,15 @@
         "evidence": [
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 4,
+            "line": 3,
             "snippet": "export async function POST(request: Request) {",
-            "extractor": "nextjs-ast-route"
+            "extractor": "nextjs-ast-route",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "entrypoint:7821443e29938cb4"
           }
         ],
-        "controls": [
-          {
-            "type": "content-type",
-            "label": "Content type allowlist",
-            "evidence": [
-              {
-                "file": "app/api/files/upload/route.ts",
-                "line": 7,
-                "snippet": "const decision = evaluateUpload({",
-                "extractor": "typescript-ast-control"
-              }
-            ],
-            "confidence": 0.88
-          }
-        ],
+        "controls": [],
         "metadata": {
           "method": "POST",
           "path": "/api/files/upload",
@@ -165,26 +160,15 @@
         "evidence": [
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 13,
+            "line": 6,
             "snippet": "await client.send(",
-            "extractor": "typescript-ast-operation"
+            "extractor": "typescript-ast-operation",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "storage:ac193b90989396d6"
           }
         ],
-        "controls": [
-          {
-            "type": "content-type",
-            "label": "Content type allowlist",
-            "evidence": [
-              {
-                "file": "app/api/files/upload/route.ts",
-                "line": 7,
-                "snippet": "const decision = evaluateUpload({",
-                "extractor": "typescript-ast-control"
-              }
-            ],
-            "confidence": 0.88
-          }
-        ],
+        "controls": [],
         "metadata": {
           "file": "app/api/files/upload/route.ts",
           "callee": "client.send",
@@ -204,26 +188,15 @@
         "evidence": [
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 13,
+            "line": 6,
             "snippet": "await client.send(",
-            "extractor": "typescript-ast-operation"
+            "extractor": "typescript-ast-operation",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "edge:39aed8b5cfeb2596"
           }
         ],
-        "controls": [
-          {
-            "type": "content-type",
-            "label": "Content type allowlist",
-            "evidence": [
-              {
-                "file": "app/api/files/upload/route.ts",
-                "line": 7,
-                "snippet": "const decision = evaluateUpload({",
-                "extractor": "typescript-ast-control"
-              }
-            ],
-            "confidence": 0.88
-          }
-        ],
+        "controls": [],
         "confidence": 0.94
       }
     ],
@@ -259,9 +232,7 @@
           "Privileged application operation"
         ],
         "potentialImpact": "An unauthenticated actor may invoke a state-changing operation.",
-        "existingControls": [
-          "Content type allowlist"
-        ],
+        "existingControls": [],
         "missingControls": [
           "Verified authentication",
           "Authorization scoped to the target resource"
@@ -270,9 +241,12 @@
         "evidence": [
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 4,
+            "line": 3,
             "snippet": "export async function POST(request: Request) {",
-            "extractor": "nextjs-ast-route"
+            "extractor": "nextjs-ast-route",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "entrypoint:7821443e29938cb4"
           }
         ],
         "confidence": 0.9,
@@ -285,12 +259,12 @@
         },
         "remediationPrompt": "Remediate this evidence-backed Hedge finding: New mutating entry point has no detected authentication control.\nSecurity invariant: Only authenticated and authorized principals may invoke POST /api/files/upload.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Authorization scoped to the target resource.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
         "verificationHistory": [],
-        "createdAt": "2026-07-15T01:09:45.013Z",
-        "updatedAt": "2026-07-15T01:09:45.013Z"
+        "createdAt": "2026-07-16T07:07:04.759Z",
+        "updatedAt": "2026-07-16T07:07:04.759Z"
       },
       {
         "id": "HEDGE-002",
-        "fingerprint": "95625c5659d7e5392705225f",
+        "fingerprint": "ce45a670a30a55124424033b",
         "title": "New storage write crosses a trust boundary without complete upload controls",
         "severity": "high",
         "origin": "deterministic",
@@ -313,27 +287,32 @@
           "Storage write"
         ],
         "potentialImpact": "Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
-        "existingControls": [
-          "Content type allowlist"
-        ],
+        "existingControls": [],
         "missingControls": [
           "Verified authentication",
           "Payload or file size limit",
+          "Content type allowlist",
           "Object ownership constraint"
         ],
         "securityInvariant": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
         "evidence": [
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 4,
+            "line": 3,
             "snippet": "export async function POST(request: Request) {",
-            "extractor": "nextjs-ast-route"
+            "extractor": "nextjs-ast-route",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "entrypoint:7821443e29938cb4"
           },
           {
             "file": "app/api/files/upload/route.ts",
-            "line": 13,
+            "line": 6,
             "snippet": "await client.send(",
-            "extractor": "typescript-ast-operation"
+            "extractor": "typescript-ast-operation",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "storage:ac193b90989396d6"
           }
         ],
         "confidence": 0.9,
@@ -344,10 +323,10 @@
           "purpose": "Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.",
           "code": "it(\"enforces upload boundaries for POST /api/files/upload\", async () => {\n  const response = await uploadFixture({ type: \"application/x-executable\", bytes: MAX_ALLOWED_BYTES + 1 });\n  expect([400, 413, 415]).toContain(response.status);\n});"
         },
-        "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
+        "remediationPrompt": "Remediate this evidence-backed Hedge finding: New storage write crosses a trust boundary without complete upload controls.\nSecurity invariant: Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.\nEntry point: POST /api/files/upload\nMissing controls: Verified authentication, Payload or file size limit, Content type allowlist, Object ownership constraint.\nMake the smallest focused change, add a regression witness that fails on the vulnerable revision and passes after the fix, preserve legitimate behavior, run the relevant tests, and explain residual uncertainty.",
         "verificationHistory": [],
-        "createdAt": "2026-07-15T01:09:45.014Z",
-        "updatedAt": "2026-07-15T01:09:45.014Z"
+        "createdAt": "2026-07-16T07:07:04.759Z",
+        "updatedAt": "2026-07-16T07:07:04.759Z"
       }
     ],
     "integrity": {
@@ -360,6 +339,153 @@
     "limitations": [
       "GPT-5.6 architectural interpretation was not run."
     ],
-    "model": "deterministic-only"
+    "model": "deterministic-only",
+    "confirmedNoDelta": false,
+    "coverage": {
+      "status": "complete",
+      "discoveredFiles": 17,
+      "includedFiles": 17,
+      "includedBytes": 9742,
+      "omitted": {
+        "fileLimit": 0,
+        "byteLimit": 0,
+        "unsafeOrUnreadable": 0,
+        "binary": 0
+      },
+      "diagnostics": []
+    },
+    "analysisHealth": {
+      "status": "complete",
+      "reasons": []
+    },
+    "observations": [
+      {
+        "id": "OBS-0a6a5ca40e2c09f701",
+        "kind": "node-added",
+        "summary": "Added storage: Storage write",
+        "subjectIds": [
+          "storage:ac193b90989396d6"
+        ],
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 6,
+            "snippet": "await client.send(",
+            "extractor": "typescript-ast-operation",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "storage:ac193b90989396d6"
+          }
+        ],
+        "source": "deterministic",
+        "metadata": {
+          "trustZone": "data",
+          "controls": []
+        }
+      },
+      {
+        "id": "OBS-2f10c0168b679f7e86",
+        "kind": "edge-added",
+        "summary": "Added relationship writes: entrypoint:7821443e29938cb4 → storage:ac193b90989396d6",
+        "subjectIds": [
+          "edge:39aed8b5cfeb2596",
+          "entrypoint:7821443e29938cb4",
+          "storage:ac193b90989396d6"
+        ],
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 6,
+            "snippet": "await client.send(",
+            "extractor": "typescript-ast-operation",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "edge:39aed8b5cfeb2596"
+          }
+        ],
+        "source": "deterministic",
+        "metadata": {
+          "relationship": "writes",
+          "label": "Storage write"
+        }
+      },
+      {
+        "id": "OBS-f8eba8cdd4982bc187",
+        "kind": "node-added",
+        "summary": "Added entrypoint: POST /api/files/upload",
+        "subjectIds": [
+          "entrypoint:7821443e29938cb4"
+        ],
+        "evidence": [
+          {
+            "file": "app/api/files/upload/route.ts",
+            "line": 3,
+            "snippet": "export async function POST(request: Request) {",
+            "extractor": "nextjs-ast-route",
+            "commit": "9453e107d6aab5eadabfb185e2e974fcf16b6a41",
+            "snapshot": "head",
+            "subjectId": "entrypoint:7821443e29938cb4"
+          }
+        ],
+        "source": "deterministic",
+        "metadata": {
+          "trustZone": "public",
+          "controls": []
+        }
+      }
+    ],
+    "inferences": [
+      {
+        "id": "INF-b221683ee4d80e4030",
+        "hypothesis": "New mutating entry point has no detected authentication control: An unauthenticated actor may invoke a state-changing operation.",
+        "confidence": 0.9,
+        "observationIds": [
+          "OBS-f8eba8cdd4982bc187"
+        ],
+        "assumptions": [
+          "The route is deployed and reachable without an upstream authentication control."
+        ],
+        "riskFingerprint": "00181ef4242358c6ecfa3c52",
+        "origin": "deterministic"
+      },
+      {
+        "id": "INF-7eb752f6e771321a2e",
+        "hypothesis": "New storage write crosses a trust boundary without complete upload controls: Unexpected content, oversized payloads, or cross-tenant object writes may reach privileged storage.",
+        "confidence": 0.9,
+        "observationIds": [
+          "OBS-0a6a5ca40e2c09f701",
+          "OBS-2f10c0168b679f7e86",
+          "OBS-f8eba8cdd4982bc187"
+        ],
+        "assumptions": [
+          "User-controlled content reaches the storage operation."
+        ],
+        "riskFingerprint": "ce45a670a30a55124424033b",
+        "origin": "deterministic"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "DEC-7f96f3d2077d74aa7a",
+        "type": "block",
+        "reason": "2 unresolved finding(s) meet or exceed the high failure threshold.",
+        "source": "threshold",
+        "riskFingerprints": [
+          "00181ef4242358c6ecfa3c52",
+          "ce45a670a30a55124424033b"
+        ],
+        "invariantIds": [],
+        "observationIds": [
+          "OBS-0a6a5ca40e2c09f701",
+          "OBS-2f10c0168b679f7e86",
+          "OBS-f8eba8cdd4982bc187"
+        ],
+        "inferenceIds": [
+          "INF-b221683ee4d80e4030",
+          "INF-7eb752f6e771321a2e"
+        ]
+      }
+    ],
+    "invariantEvaluations": []
   }
 }

@@ -9,7 +9,7 @@ Hedge analyzes adversarial content. Security is part of the product, not a later
 - Workflow definition from the base branch or a pinned published Action.
 - `.hedge.yml` from the PR base SHA.
 - `.hedge/context.yml` from the PR base SHA.
-- `threatmodel.json` from the PR base SHA, or an explicit empty baseline when absent.
+- `threatmodel.json` from the PR base SHA for lifecycle state when its complete digest is valid. The architecture baseline is rebuilt from exact base source bytes when state is absent, stale, or unusable.
 - Maintainer permissions returned by GitHub.
 
 **Always untrusted:**
@@ -43,8 +43,13 @@ Hackathon controls:
 - Base configuration, context, and state fetched through the GitHub API.
 - Published/pinned Hedge Action in the consumer workflow—not Action code from the PR.
 - The secret-bearing analysis job does not build or execute target code.
+- Exact source collection, model reasoning, and GitHub publication run in separate jobs. The reasoning job has no target checkout or GitHub write permission; the publisher has no OpenAI credential.
+- Every cross-job artifact is size-bounded, schema-validated, SHA-256 bound by RunManifest v0.1, and re-bound to repository, PR, exact workflow and Action commits, exact base/head SHAs, policy, context, extractor, runtime schema, prompt, model, coverage, and analysis-health metadata.
+- Collection and reasoning outputs are written as exclusive files below `runner.temp`. The reasoning artifact contains only its own reason bundle and manifest; publication independently downloads the original immutable collection artifact and validates both handoffs together.
+- The collector performs no report, state, or temporary-file writes beneath the untrusted target checkout.
 - Minimal GitHub permissions and no persisted checkout credentials.
 - Verification jobs contain no OpenAI credential or repository-write token.
+- Witness and legitimate-behavior execution occurs in bounded, network-disabled containers; crashes and setup failures are recorded as inconclusive.
 - Codex remediation and patch publication occur in separate jobs.
 
 Production controls:
@@ -62,8 +67,9 @@ Controls:
 - Analysis produces schema-validated findings, not arbitrary shell command strings.
 - Local execution uses repository-owned allowlisted commands and `execFile`-style argument separation.
 - `@hedge fix` accepts only a strict risk-ID command from a write-authorized actor.
-- Codex runs in a constrained workspace and emits a binary patch artifact.
-- The publisher applies the patch in a separate job and opens a draft PR.
+- Codex runs in a constrained workspace and emits a digest-bound Git patch artifact.
+- A secretless validation job rejects binaries, symlinks, submodules, traversal, protected state/policy paths, unexpected workflow edits, excessive patch size/file count, and digest/source mismatches before running target tests.
+- The publisher rechecks the current head, consumes only the validated digest-bound artifact, sanitizes model prose, and opens at most one draft PR.
 - Every repair remains reviewable and must pass verification.
 
 ## Risk closure spoofing
@@ -73,10 +79,10 @@ A contributor may add a meaningless passing test to close a finding.
 Controls:
 
 - Test existence does not close a finding.
-- Witness must demonstrate the behavior on the vulnerable revision.
-- Witness must be blocked on the repaired revision.
+- The identical reviewed witness bytes and digest must produce `reproduced` on the exact vulnerable revision.
+- The same witness must produce `blocked-by-control` on the exact repaired revision; crashes, timeouts, dependency failures, malformed results, and generic nonzero exits are `inconclusive`.
 - Legitimate behavior must still pass.
-- A relevant modeled control or attack path must change.
+- An exact, complete offline graph comparison must show a relevant modeled control or attack path change with commit-bound evidence.
 - Revisions, commands, actor, notes, and artifacts are recorded.
 
 ## State poisoning
@@ -84,7 +90,8 @@ Controls:
 Controls:
 
 - PR-head `.hedge.yml`, context, and register never govern the run reviewing that PR.
-- Missing base state means an empty baseline, never a head-state fallback.
+- Missing or invalid base state never causes an empty-graph comparison and never falls back to head state. Hedge rebuilds the exact base graph and treats lifecycle state as unavailable.
+- A full-register digest failure discards findings, IDs, acceptance, verification, run history, and graph together.
 - Generated state updates are reviewable.
 - The graph and complete register are sealed with a versioned digest and written atomically.
 - Legacy graph-only integrity is accepted only as an explicit migration state and upgraded on refresh.
@@ -107,7 +114,8 @@ Controls:
 
 Controls:
 
-- File and byte budgets loaded from trusted policy.
+- File and byte budgets loaded from trusted base policy.
+- Partial and unsupported coverage produce degraded or failed health and cannot confirm no-delta, satisfy an invariant, or advance mitigation state.
 - Deterministic relevance filter before model routing.
 - No model call when no graph delta exists.
 - Luna triage before Sol analysis.
@@ -123,4 +131,4 @@ The local package validates schemas, graph extraction, lifecycle behavior, workf
 
 Verification and acceptance never write directly to the protected branch. The published Action updates a checked-out trusted state, and the workflow opens a separate reviewable state pull request. Proof bundles hash copied report artifacts and expose a self-verifying manifest; they are tamper-evident but deliberately do not claim cryptographic identity or non-repudiation.
 
-The stored graph and complete register are bound to policy, reviewed context, source revision, and versioned integrity digests. Hedge warns when a trusted baseline is internally valid but stale relative to the policy or revision used for the current review.
+The stored graph and complete register are bound to policy, reviewed context, source revision, and versioned integrity digests. Stored graph state is a cache and lifecycle record, never the authority for a pull-request comparison: Hedge rebuilds the exact base and head graphs and warns when integrity-bound state is stale.

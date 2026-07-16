@@ -53,7 +53,7 @@ program
     for (const path of result.written) console.log(`+ ${path}`);
     for (const path of result.skipped) console.log(`= ${path} (already exists)`);
     console.log(
-      "Next: run hedge init --configure, add OPENAI_API_KEY, and commit the generated baseline."
+      "Next: run hedge init --configure and commit the generated baseline. OPENAI_API_KEY is optional; deterministic offline operation remains available."
     );
   });
 
@@ -198,7 +198,7 @@ program
 
 program
   .command("check")
-  .description("Compare the current repository to the stored Hedge baseline.")
+  .description("Compare exact base and head revisions using trusted Hedge policy and context.")
   .option("-r, --root <path>", "repository root", ".")
   .option("-c, --config <path>", "configuration path", ".hedge.yml")
   .option("--base <ref>", "base git ref", "HEAD~1")
@@ -218,18 +218,35 @@ program
     }) => {
       const root = resolve(options.root);
       const config = await loadConfig(root, options.config);
+      const context = await loadHedgeContext(root);
       let patch = "";
+      const coverageDiagnostics: Array<{
+        code: string;
+        phase: "patch";
+        message: string;
+        snapshot: "head";
+      }> = [];
       try {
         patch = (await getGitDiff(root, options.base, options.head, config.limits.max_bytes)).patch;
       } catch (error) {
         console.warn(`Could not read git diff: ${(error as Error).message}`);
+        coverageDiagnostics.push({
+          code: "patch-unavailable",
+          phase: "patch",
+          snapshot: "head",
+          message: "The exact base/head patch could not be collected."
+        });
       }
       const result = await checkHedge({
         root,
         config,
         patch,
         apiKey: options.offline ? undefined : process.env.OPENAI_API_KEY,
-        persist: options.persist
+        persist: options.persist,
+        context,
+        baseRevision: options.base,
+        headRevision: options.head,
+        coverageDiagnostics
       });
       console.log(
         result.surfaceChanged

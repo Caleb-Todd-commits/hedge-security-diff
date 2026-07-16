@@ -22,11 +22,11 @@ Creates a baseline. It must complete without an OpenAI key in deterministic mode
 
 ### `hedge check`
 
-Compares current evidence to the stored graph. It writes `.hedge/report.md`. In GitHub Actions it updates one existing Hedge comment or creates one when the surface changes.
+Builds authoritative graphs from the exact requested base and head revisions using trusted Hedge policy and context. Integrity-bound stored state supplies lifecycle history but is not the comparison authority. It writes `.hedge/report.md`; in GitHub Actions, publication is silent whenever no graph delta is observed. Only an exact, complete no-delta result removes a previous Hedge report; partial or unsupported observations leave the previous complete report intact.
 
 ### `hedge fix-plan HEDGE-NNN`
 
-Outputs the constrained Codex remediation contract. The final product will expose this through `@hedge fix HEDGE-NNN`.
+Outputs the constrained Codex remediation contract. The approval-gated example workflow exposes that contract through `@hedge fix HEDGE-NNN` and opens at most one draft repair PR.
 
 ### `hedge replay <fixture>`
 
@@ -65,13 +65,14 @@ limits:
 
 ## Status behavior
 
-- No delta: green, no comment, no model call.
+- Exact, complete no delta: green, no comment, no model call; remove a stale Hedge report.
+- No observed delta with partial or unsupported coverage: remain silent, retain any previous complete report, and do not claim a confirmed healthy result or advance lifecycle state.
 - Delta with no concrete finding: green or neutral; one concise report is allowed.
 - Medium finding: report, normally no failure.
-- High or critical finding: produce a recorded `block` decision according to the configured threshold.
+- Deterministic, trusted-policy, or explicit-invariant finding at the configured threshold: produce a recorded `block` decision. Model-origin findings remain reviewable inferences but cannot directly block.
 - Explicit invariant violation: record its status and contribute directly to the decision through an evidence-linked invariant finding.
 - Accepted risk: remains visible with who/when/why.
-- Verified risk: graph shows the new control and links execution evidence.
+- Verified risk: one immutable witness reproduces on the vulnerable revision and is blocked by the intended control on the repair, legitimate behavior succeeds, and an exact graph delta proves the relevant architecture control or path change.
 
 ## Definition of done for Build Week
 

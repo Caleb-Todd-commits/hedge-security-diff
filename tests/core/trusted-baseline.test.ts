@@ -7,7 +7,7 @@ import { checkHedge, initializeHedge } from "../../src/core/run.js";
 import { emptyRegister } from "../../src/register/store.js";
 
 describe("trusted baseline isolation", () => {
-  it("uses an explicit empty base register instead of local PR-head state", async () => {
+  it("does not compare a head graph with an empty graph when baseline state is absent", async () => {
     const root = await mkdtemp(join(tmpdir(), "hedge-baseline-"));
     const routeDirectory = join(root, "app", "api", "files");
     await mkdir(routeDirectory, { recursive: true });
@@ -37,7 +37,11 @@ describe("trusted baseline isolation", () => {
       repository: "example/repository",
       baselineRegister: emptyRegister()
     });
-    expect(trustedEmptyResult.surfaceChanged).toBe(true);
-    expect(trustedEmptyResult.findings.length).toBeGreaterThan(0);
+    expect(trustedEmptyResult.surfaceChanged).toBe(false);
+    expect(trustedEmptyResult.analysis.confirmedNoDelta).toBe(false);
+    expect(trustedEmptyResult.analysis.analysisHealth?.status).toBe("degraded");
+    expect(trustedEmptyResult.findings).toEqual([]);
+    expect(trustedEmptyResult.report).toContain("not a confirmed healthy comparison");
+    expect(trustedEmptyResult.report).toContain("Analysis health: **DEGRADED**");
   });
 });

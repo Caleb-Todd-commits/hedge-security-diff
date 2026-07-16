@@ -1,4 +1,5 @@
 import type {
+  AnalysisHealth,
   Decision,
   Inference,
   InvariantEvaluation,
@@ -15,12 +16,19 @@ export function buildDecisions(
   invariantEvaluations: InvariantEvaluation[],
   observations: Observation[],
   inferences: Inference[],
-  failOn: Severity
+  failOn: Severity,
+  analysisHealth?: AnalysisHealth
 ): Decision[] {
   const unresolved = findings.filter(
     (finding) => !["verified", "accepted", "closed"].includes(finding.status)
   );
-  const blocking = unresolved.filter(
+  // Model output is an inference, not a trusted policy decision. It remains
+  // visible for review, but only deterministic observations, repository policy,
+  // and explicit invariants may directly fail a check.
+  const decisionEligible = unresolved.filter((finding) =>
+    ["deterministic", "policy", "invariant"].includes(finding.origin)
+  );
+  const blocking = decisionEligible.filter(
     (finding) => severityOrder.indexOf(finding.severity) >= severityOrder.indexOf(failOn)
   );
   const violated = invariantEvaluations.filter((evaluation) => evaluation.status === "violated");
@@ -28,7 +36,7 @@ export function buildDecisions(
   const reason = blocking.length
     ? `${blocking.length} unresolved finding(s) meet or exceed the ${failOn} failure threshold.`
     : unresolved.length
-      ? `${unresolved.length} unresolved finding(s) remain below the ${failOn} failure threshold.`
+      ? `${unresolved.length} unresolved finding(s) require review, but no decision-eligible finding meets the ${failOn} failure threshold.`
       : violated.length
         ? "Invariant violations were recorded but no unresolved finding remains."
         : "No unresolved evidence-linked risk meets the configured threshold.";
@@ -70,5 +78,23 @@ export function buildDecisions(
     };
   });
 
-  return [overall, ...invariantDecisions];
+  const healthDecision: Decision[] =
+    analysisHealth && analysisHealth.status !== "complete"
+      ? [
+          {
+            id: `DEC-${stableHash({ analysisHealth }, 18)}`,
+            type: "warn",
+            reason:
+              analysisHealth.reasons.join(" ") ||
+              `Analysis health is ${analysisHealth.status}; do not interpret this run as confirmed healthy.`,
+            source: "analysis-health",
+            riskFingerprints: [],
+            invariantIds: [],
+            observationIds: observations.map((observation) => observation.id),
+            inferenceIds: []
+          }
+        ]
+      : [];
+
+  return [overall, ...healthDecision, ...invariantDecisions];
 }

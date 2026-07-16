@@ -35,6 +35,7 @@ export interface ModelRunResult {
     notes: string[];
   };
   usage?: { inputTokens?: number; outputTokens?: number };
+  rejectedProposalCount?: number;
 }
 
 export class ModelRouter {
@@ -107,16 +108,21 @@ export class ModelRouter {
     });
     return {
       findings,
-      summary: parsed.summary,
-      limitations: [...parsed.limitations, ...rejected],
+      // Free-form model prose is not publication-ready evidence. The analysis
+      // layer emits deterministic summaries and static validation notes.
+      summary: "Model proposals were schema-checked and resolved against the exact graph delta.",
+      limitations: [],
       model: this.options.analysisModel,
       integrity: {
         untrustedInstructionsObserved:
           parsed.integrity.untrustedInstructionsObserved || containsInstructionLikeContent(patch),
         analysisBoundaryHeld: parsed.integrity.analysisBoundaryHeld,
-        notes: parsed.integrity.notes
+        notes: [
+          "Structured model output passed the instruction-boundary assertion and exact evidence-reference validation."
+        ]
       },
-      usage
+      usage,
+      rejectedProposalCount: rejected.length
     };
   }
 }

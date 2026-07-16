@@ -1,16 +1,17 @@
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import fg from "fast-glob";
+import micromatch from "micromatch";
 import type { HedgeConfig } from "../domain/schemas.js";
 
-const SOURCE_PATTERNS = [
+export const SOURCE_PATTERNS = [
   "**/*.{ts,tsx,js,jsx,mjs,cjs}",
   "**/package.json",
   "**/schema.prisma",
   "**/*.{yml,yaml,json,toml}"
 ];
 
-const DEFAULT_IGNORES = [
+export const DEFAULT_SOURCE_IGNORES = [
   "**/node_modules/**",
   "**/dist/**",
   "**/build/**",
@@ -28,6 +29,8 @@ export interface SourceFile {
   absolutePath: string;
   content: string;
   bytes: number;
+  commit?: string;
+  snapshot?: "base" | "head";
 }
 
 export interface SourceCollectionStats {
@@ -60,7 +63,7 @@ export async function collectSourceFileInventory(
     dot: true,
     unique: true,
     followSymbolicLinks: false,
-    ignore: [...DEFAULT_IGNORES, ...config.ignored_paths]
+    ignore: [...DEFAULT_SOURCE_IGNORES, ...config.ignored_paths]
   });
 
   const prioritized = entries.sort(
@@ -149,6 +152,20 @@ export function relevanceScore(path: string): number {
   if (/test|spec|fixture/.test(normalized)) score -= 40;
   if (/docs?|readme/.test(normalized)) score -= 60;
   return score;
+}
+
+export function isSupportedSourcePath(path: string): boolean {
+  return micromatch.isMatch(path, SOURCE_PATTERNS, {
+    dot: true,
+    nonegate: true
+  });
+}
+
+export function isIgnoredSourcePath(path: string, ignoredPaths: readonly string[]): boolean {
+  return micromatch.isMatch(path, [...DEFAULT_SOURCE_IGNORES, ...ignoredPaths], {
+    dot: true,
+    nonegate: true
+  });
 }
 
 function isPathInside(root: string, candidate: string): boolean {

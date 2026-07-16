@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pullRequest": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "baseSha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "headSha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflowRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actionVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extractorVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifactSchemaVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "promptVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "contextDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "extractorDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "schemaDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "promptDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "model": {
+      "type": "string"
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["complete", "partial", "unsupported"]
+        },
+        "discoveredFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "includedFiles": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "includedBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "omitted": {
+          "type": "object",
+          "properties": {
+            "fileLimit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "byteLimit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "unsafeOrUnreadable": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "binary": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["fileLimit", "byteLimit", "unsafeOrUnreadable", "binary"],
+          "additionalProperties": false
+        },
+        "diagnostics": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string",
+                "enum": ["collection", "parsing", "framework", "patch", "analysis"]
+              },
+              "message": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              },
+              "snapshot": {
+                "type": "string",
+                "enum": ["base", "head"]
+              }
+            },
+            "required": ["code", "phase", "message"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "status",
+        "discoveredFiles",
+        "includedFiles",
+        "includedBytes",
+        "omitted",
+        "diagnostics"
+      ],
+      "additionalProperties": false
+    },
+    "analysisHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["complete", "degraded", "failed"]
+        },
+        "reasons": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["status", "reasons"],
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "manifestDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "createdAt",
+    "repository",
+    "baseSha",
+    "headSha",
+    "workflowRef",
+    "actionVersion",
+    "extractorVersion",
+    "artifactSchemaVersion",
+    "configDigest",
+    "contextDigest",
+    "extractorDigest",
+    "schemaDigest",
+    "coverage",
+    "analysisHealth",
+    "artifacts",
+    "manifestDigest"
+  ],
+  "additionalProperties": false
+}

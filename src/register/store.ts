@@ -180,8 +180,11 @@ export function markMissingFindingsAsMitigated(
   register: ThreatRegister,
   activeFindings: RiskFinding[],
   delta: GraphDelta,
-  options: { modelAnalysisCompleted?: boolean } = {}
+  options: { modelAnalysisCompleted?: boolean; analysisComplete?: boolean } = {}
 ): RiskFinding[] {
+  // Missing evidence is not evidence of mitigation when collection, parsing, or
+  // framework coverage was incomplete. Leave lifecycle state untouched.
+  if (options.analysisComplete === false) return [];
   const active = new Set(activeFindings.map((finding) => finding.fingerprint));
   const touchedFiles = deltaTouchedFiles(delta);
   const transitions: RiskFinding[] = [];

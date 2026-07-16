@@ -25,10 +25,12 @@ export function renderFindingExplanation(register: ThreatRegister, riskId: strin
       ? [
           "",
           `Latest verification: ${verification.recordedAt} by ${verification.recordedBy}`,
-          `Vulnerable witness succeeded: ${verification.vulnerableRevisionWitnessSucceeded}`,
-          `Repaired witness blocked: ${verification.repairedRevisionWitnessBlocked}`,
+          `Vulnerable witness outcome: ${verification.vulnerableOutcome ?? (verification.vulnerableRevisionWitnessSucceeded ? "legacy-success" : "legacy-incomplete")}`,
+          `Repaired witness outcome: ${verification.repairedOutcome ?? (verification.repairedRevisionWitnessBlocked ? "legacy-blocked" : "legacy-incomplete")}`,
+          `Witness digest: ${verification.witnessDigest ?? "legacy evidence did not record one"}`,
           `Legitimate behavior passed: ${verification.legitimateBehaviorPassed}`,
-          `Architecture control changed: ${verification.architectureControlChanged}`
+          `Architecture control changed: ${verification.architectureControlChanged}`,
+          `Architecture delta digest: ${verification.graphDeltaDigest ?? "legacy evidence did not record one"}`
         ]
       : []),
     "",

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "0.1",
+  "corpusClassification": "representative-not-held-out",
+  "cases": [
+    {
+      "id": "001-benign-refactor",
+      "category": "benign-no-delta"
+    },
+    {
+      "id": "002-upload-endpoint",
+      "category": "new-entrypoint-and-storage"
+    },
+    {
+      "id": "004-upload-mitigation",
+      "category": "control-addition"
+    },
+    {
+      "id": "005-prompt-injection-data",
+      "category": "prompt-injection-silence"
+    },
+    {
+      "id": "006-public-secret-boundary",
+      "category": "secret-boundary",
+      "boundaryProbe": true
+    },
+    {
+      "id": "008-removed-auth",
+      "category": "control-removal"
+    },
+    {
+      "id": "009-protected-db-write",
+      "category": "protected-data-write"
+    },
+    {
+      "id": "010-dynamic-ssrf",
+      "category": "dynamic-outbound-flow"
+    },
+    {
+      "id": "033-workflow-permission-expansion",
+      "category": "workflow-permission-change"
+    },
+    {
+      "id": "044-complex-matcher-unknown",
+      "category": "unsupported-control-matcher"
+    }
+  ]
+}

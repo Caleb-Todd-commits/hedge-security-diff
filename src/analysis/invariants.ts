@@ -1,4 +1,5 @@
 import type {
+  Coverage,
   GraphDelta,
   InvariantEvaluation,
   RiskFinding,
@@ -14,7 +15,8 @@ export interface InvariantAnalysis {
 
 export function analyzeSecurityInvariants(
   delta: GraphDelta,
-  invariants: SecurityInvariantDefinition[]
+  invariants: SecurityInvariantDefinition[],
+  options: { coverage?: Coverage } = {}
 ): InvariantAnalysis {
   const candidates = uniqueNodes([
     ...delta.addedNodes,
@@ -25,6 +27,19 @@ export function analyzeSecurityInvariants(
 
   for (const invariant of invariants.filter((item) => item.enabled)) {
     const matched = candidates.filter((node) => matches(node, invariant));
+    if (options.coverage && options.coverage.status !== "complete") {
+      evaluations.push({
+        invariantId: invariant.id,
+        description: invariant.description,
+        severity: invariant.severity,
+        status: "unknown",
+        matchedNodeIds: matched.map((node) => node.id),
+        missingControls: [],
+        evidence: matched.flatMap((node) => node.evidence),
+        reason: `Invariant status is unknown because analysis coverage was ${options.coverage.status}.`
+      });
+      continue;
+    }
     if (!matched.length) {
       evaluations.push({
         invariantId: invariant.id,
@@ -35,6 +50,21 @@ export function analyzeSecurityInvariants(
         missingControls: [],
         evidence: [],
         reason: "No changed architecture surface matched this invariant."
+      });
+      continue;
+    }
+
+    const uncertain = matched.filter((node) => hasUncertainRequiredControl(node, invariant));
+    if (uncertain.length) {
+      evaluations.push({
+        invariantId: invariant.id,
+        description: invariant.description,
+        severity: invariant.severity,
+        status: "unknown",
+        matchedNodeIds: matched.map((node) => node.id),
+        missingControls: [],
+        evidence: uncertain.flatMap((node) => node.evidence),
+        reason: `${uncertain.length} matching changed surface(s) contain only inferred or unknown evidence for a required control.`
       });
       continue;
     }
@@ -143,8 +173,26 @@ function missingControls(
   node: SurfaceNode,
   invariant: SecurityInvariantDefinition
 ): Array<SurfaceNode["controls"][number]["type"]> {
-  const present = new Set(node.controls.map((control) => control.type));
+  const present = new Set(
+    node.controls
+      .filter((control) => control.assurance === "trusted" || control.assurance === "confirmed")
+      .map((control) => control.type)
+  );
   return invariant.requires.controls.filter((control) => !present.has(control));
+}
+
+function hasUncertainRequiredControl(
+  node: SurfaceNode,
+  invariant: SecurityInvariantDefinition
+): boolean {
+  return invariant.requires.controls.some((required) =>
+    node.controls.some(
+      (control) =>
+        control.type === required &&
+        control.assurance !== "trusted" &&
+        control.assurance !== "confirmed"
+    )
+  );
 }
 
 function globLike(pattern: string, value: string): boolean {

@@ -32,7 +32,7 @@
           "type": "string"
         },
         "toolVersion": {
-          "default": "0.5.0",
+          "default": "0.5.2",
           "type": "string"
         }
       },
@@ -56,6 +56,9 @@
         },
         "repository": {
           "default": "local",
+          "type": "string"
+        },
+        "sourceCommit": {
           "type": "string"
         },
         "framework": {
@@ -121,6 +124,13 @@
                     },
                     "commit": {
                       "type": "string"
+                    },
+                    "snapshot": {
+                      "type": "string",
+                      "enum": ["base", "head"]
+                    },
+                    "subjectId": {
+                      "type": "string"
                     }
                   },
                   "required": ["file", "extractor"],
@@ -178,6 +188,13 @@
                           },
                           "commit": {
                             "type": "string"
+                          },
+                          "snapshot": {
+                            "type": "string",
+                            "enum": ["base", "head"]
+                          },
+                          "subjectId": {
+                            "type": "string"
                           }
                         },
                         "required": ["file", "extractor"],
@@ -189,9 +206,14 @@
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
+                    },
+                    "assurance": {
+                      "default": "inferred",
+                      "type": "string",
+                      "enum": ["trusted", "confirmed", "inferred", "unknown"]
                     }
                   },
-                  "required": ["type", "label", "evidence", "confidence"],
+                  "required": ["type", "label", "evidence", "confidence", "assurance"],
                   "additionalProperties": false
                 }
               },
@@ -265,6 +287,13 @@
                     },
                     "commit": {
                       "type": "string"
+                    },
+                    "snapshot": {
+                      "type": "string",
+                      "enum": ["base", "head"]
+                    },
+                    "subjectId": {
+                      "type": "string"
                     }
                   },
                   "required": ["file", "extractor"],
@@ -322,6 +351,13 @@
                           },
                           "commit": {
                             "type": "string"
+                          },
+                          "snapshot": {
+                            "type": "string",
+                            "enum": ["base", "head"]
+                          },
+                          "subjectId": {
+                            "type": "string"
                           }
                         },
                         "required": ["file", "extractor"],
@@ -333,9 +369,14 @@
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
+                    },
+                    "assurance": {
+                      "default": "inferred",
+                      "type": "string",
+                      "enum": ["trusted", "confirmed", "inferred", "unknown"]
                     }
                   },
-                  "required": ["type", "label", "evidence", "confidence"],
+                  "required": ["type", "label", "evidence", "confidence", "assurance"],
                   "additionalProperties": false
                 }
               },
@@ -363,6 +404,94 @@
           "items": {
             "type": "string"
           }
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["complete", "partial", "unsupported"]
+            },
+            "discoveredFiles": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "includedFiles": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "includedBytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "omitted": {
+              "type": "object",
+              "properties": {
+                "fileLimit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "byteLimit": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "unsafeOrUnreadable": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "binary": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": ["fileLimit", "byteLimit", "unsafeOrUnreadable", "binary"],
+              "additionalProperties": false
+            },
+            "diagnostics": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "phase": {
+                    "type": "string",
+                    "enum": ["collection", "parsing", "framework", "patch", "analysis"]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string"
+                  },
+                  "snapshot": {
+                    "type": "string",
+                    "enum": ["base", "head"]
+                  }
+                },
+                "required": ["code", "phase", "message"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "status",
+            "discoveredFiles",
+            "includedFiles",
+            "includedBytes",
+            "omitted",
+            "diagnostics"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -501,6 +630,13 @@
                 },
                 "commit": {
                   "type": "string"
+                },
+                "snapshot": {
+                  "type": "string",
+                  "enum": ["base", "head"]
+                },
+                "subjectId": {
+                  "type": "string"
                 }
               },
               "required": ["file", "extractor"],
@@ -570,6 +706,62 @@
                 "architectureControlChanged": {
                   "type": "boolean"
                 },
+                "witnessDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "vulnerableOutcome": {
+                  "type": "string",
+                  "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+                },
+                "repairedOutcome": {
+                  "type": "string",
+                  "enum": ["reproduced", "blocked-by-control", "inconclusive"]
+                },
+                "graphDeltaDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "architectureEvidence": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "snippet": {
+                        "type": "string"
+                      },
+                      "extractor": {
+                        "type": "string"
+                      },
+                      "commit": {
+                        "type": "string"
+                      },
+                      "snapshot": {
+                        "type": "string",
+                        "enum": ["base", "head"]
+                      },
+                      "subjectId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["file", "extractor"],
+                    "additionalProperties": false
+                  }
+                },
                 "commands": {
                   "default": [],
                   "type": "array",
@@ -599,6 +791,7 @@
                 "repairedRevisionWitnessBlocked",
                 "legitimateBehaviorPassed",
                 "architectureControlChanged",
+                "architectureEvidence",
                 "commands",
                 "notes",
                 "artifacts"
@@ -712,6 +905,13 @@
                   "type": "string"
                 },
                 "commit": {
+                  "type": "string"
+                },
+                "snapshot": {
+                  "type": "string",
+                  "enum": ["base", "head"]
+                },
+                "subjectId": {
                   "type": "string"
                 }
               },

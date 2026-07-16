@@ -10,7 +10,15 @@ const delta: GraphDelta = {
       label: "POST /api/billing/charge",
       trustZone: "public",
       evidence: [{ file: "app/api/billing/charge/route.ts", line: 3, extractor: "test" }],
-      controls: [{ type: "authentication", label: "auth()", evidence: [], confidence: 1 }],
+      controls: [
+        {
+          type: "authentication",
+          label: "auth()",
+          evidence: [],
+          confidence: 1,
+          assurance: "confirmed"
+        }
+      ],
       metadata: { method: "POST" }
     }
   ],
@@ -53,7 +61,8 @@ describe("organization-defined policies", () => {
       type: "rate-limit",
       label: "limit()",
       evidence: [],
-      confidence: 1
+      confidence: 1,
+      assurance: "confirmed"
     });
     const config = HedgeConfigSchema.parse({
       policies: [

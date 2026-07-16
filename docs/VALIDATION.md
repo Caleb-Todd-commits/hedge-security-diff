@@ -1,12 +1,16 @@
 # Release validation record
 
-This record describes the evidence produced for the packaged `0.5.1` Build Week release. It is deliberately narrower than a production assurance claim.
+This record describes the local evidence produced for the `0.5.2` Build Week release candidate. It is deliberately narrower than a production assurance claim; remote GitHub and API-backed gates remain unclaimed until recorded.
 
 ## Automated checks
 
-Build the distributable artifacts, then run the release gate:
+Regenerate public interfaces and deterministic evaluation evidence, build the distributable artifacts, then run the release gates:
 
 ```bash
+npm run schemas
+npm run typecheck
+npm test
+npm run eval
 npm run build
 npm run validate:release
 npm run validate:demo
@@ -28,8 +32,8 @@ It verifies:
 - Observation/inference/decision separation and Action decision output.
 - The bundled full-system replay with recorded model boundaries and expected-result assertions.
 - A generated Git repository containing the full prepared demo branch sequence.
-- A vulnerable upload witness that succeeds before remediation.
-- The same witness being blocked after remediation.
+- A vulnerable upload witness that returns the structured `reproduced` outcome before remediation.
+- The same witness bytes returning the structured `blocked-by-control` outcome after remediation.
 - Legitimate upload behavior remaining functional after remediation.
 - Silence on the benign-refactor branch.
 
@@ -37,14 +41,14 @@ It verifies:
 
 At packaging time:
 
-- **37** test files passed.
-- **121** unit, contract, replay, and schema tests passed.
+- **49** test files passed.
+- **226** unit, contract, replay, and schema tests passed.
 - **45 of 45** bundled deterministic evaluation cases passed.
 - The vulnerable demo branch produced an evidence-linked security architecture delta and two findings.
 - The benign demo branch produced no graph delta and no finding.
-- The vulnerable witness exited successfully before the fix.
-- The repaired witness was blocked while the legitimate-behavior script still passed.
-- A separate `npm run audit:high` check reported zero vulnerabilities at packaging time.
+- The vulnerable witness returned `reproduced` before the fix.
+- The repaired witness returned `blocked-by-control` while the legitimate-behavior script still passed.
+- `npm run audit:high` completed against the public npm advisory service with **0 vulnerabilities** reported.
 
 ## Claim boundary
 

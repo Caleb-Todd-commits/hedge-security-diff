@@ -1,6 +1,8 @@
 # Generated Hedge demo output
 
-These artifacts were regenerated from the prepared `demo/01-file-upload-risk` branch with Hedge v0.4 in deterministic offline mode.
+These artifacts are regenerated from the prepared `demo/01-file-upload-risk` branch in deterministic offline mode. See `docs/VALIDATION.md` for the exact candidate version and validation boundary.
+
+Regenerate the complete coherent set with `npm run demo:generate`; the command refuses stale CLI versions, incomplete flagship coverage, or graph/register/proof disagreement.
 
 - `security-diff.html` — standalone interactive dashboard; open locally in a browser.
 - `security-diff.md` — review-oriented Markdown report.

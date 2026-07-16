@@ -57,8 +57,8 @@ export function renderThreatModelDocument(
     "## Update contract",
     "",
     "- `hedge init` establishes or refreshes this baseline.",
-    "- Pull requests are compared against the stored graph in `threatmodel.json`.",
-    "- A finding moves to `verified` only after executable counterevidence succeeds on the vulnerable revision and is blocked on the repaired revision while legitimate behavior remains intact.",
+    "- Pull-request checks rebuild graphs from the exact base and head commits; integrity-bound stored state supplies lifecycle history, not comparison authority.",
+    "- A finding moves to `verified` only when one immutable witness reproduces on the vulnerable revision, is blocked by the intended control on the repaired revision, legitimate behavior succeeds, and the exact graph delta proves a relevant architecture control or path change.",
     "- Deterministic observations, security inferences, and merge decisions remain separate artifacts.",
     "- Risk acceptance must record who, when, and why; it is never inferred from silence."
   ];
@@ -104,7 +104,7 @@ function renderResolved(register: ThreatRegister): string[] {
         : []),
       ...(verification
         ? [
-            `  - Verified by ${verification.recordedBy} on ${verification.recordedAt}; vulnerable witness succeeded: ${verification.vulnerableRevisionWitnessSucceeded}; repaired witness blocked: ${verification.repairedRevisionWitnessBlocked}; legitimate behavior passed: ${verification.legitimateBehaviorPassed}; architecture control changed: ${verification.architectureControlChanged}.`
+            `  - Verification recorded by ${verification.recordedBy} on ${verification.recordedAt}; vulnerable outcome: ${verification.vulnerableOutcome ?? "legacy"}; repaired outcome: ${verification.repairedOutcome ?? "legacy"}; immutable witness: ${verification.witnessDigest ? "yes" : "not recorded"}; legitimate behavior passed: ${verification.legitimateBehaviorPassed}; evidence-linked architecture control changed: ${verification.architectureControlChanged}.`
           ]
         : [])
     ];

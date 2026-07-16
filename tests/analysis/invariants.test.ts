@@ -11,7 +11,13 @@ function deltaWithControls(controls: Array<"authentication" | "size-limit">): Gr
         label: "POST /api/files/upload",
         trustZone: "public",
         evidence: [{ file: "app/api/files/upload/route.ts", line: 1, extractor: "test" }],
-        controls: controls.map((type) => ({ type, label: type, evidence: [], confidence: 1 })),
+        controls: controls.map((type) => ({
+          type,
+          label: type,
+          evidence: [],
+          confidence: 1,
+          assurance: "confirmed" as const
+        })),
         metadata: { method: "POST" }
       }
     ],
@@ -60,6 +66,33 @@ describe("security invariants", () => {
       invariant
     ]);
     expect(result.evaluations[0]?.status).toBe("satisfied");
+    expect(result.findings).toEqual([]);
+  });
+
+  it("treats inferred controls as unknown rather than satisfied", () => {
+    const delta = deltaWithControls(["authentication", "size-limit"]);
+    for (const control of delta.addedNodes[0]!.controls) control.assurance = "inferred";
+    const result = analyzeSecurityInvariants(delta, [invariant]);
+    expect(result.evaluations[0]?.status).toBe("unknown");
+    expect(result.findings).toEqual([]);
+  });
+
+  it("does not evaluate an invariant as healthy under partial coverage", () => {
+    const result = analyzeSecurityInvariants(
+      deltaWithControls(["authentication", "size-limit"]),
+      [invariant],
+      {
+        coverage: {
+          status: "partial",
+          discoveredFiles: 2,
+          includedFiles: 1,
+          includedBytes: 100,
+          omitted: { fileLimit: 1, byteLimit: 0, unsafeOrUnreadable: 0, binary: 0 },
+          diagnostics: []
+        }
+      }
+    );
+    expect(result.evaluations[0]?.status).toBe("unknown");
     expect(result.findings).toEqual([]);
   });
 });

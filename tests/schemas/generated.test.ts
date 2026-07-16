@@ -8,6 +8,9 @@ const names = [
   "hedge-context.schema.json",
   "verification-evidence.schema.json",
   "analysis-result.schema.json",
+  "run-manifest.schema.json",
+  "collection-bundle.schema.json",
+  "reason-bundle.schema.json",
   "security-invariant.schema.json"
 ];
 

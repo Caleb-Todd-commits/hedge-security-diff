@@ -2,7 +2,7 @@
 
 > Generated from repository evidence. This document surfaces design-level risks; it is not a vulnerability verdict or a replacement for SAST, DAST, review, or penetration testing.
 
-**Generated:** 2026-07-15T01:09:45.011Z
+**Generated:** 2026-07-16T07:07:04.758Z
 **Framework:** nextjs
 **Open risks:** 2
 
@@ -12,6 +12,8 @@
 flowchart LR
   n_auth_control_7bf2b37d213596d1[Authentication check: auth]
   class n_auth_control_7bf2b37d213596d1 application;
+  n_authorization_control_20b83844dc80aa0d[Resource ownership derivation]
+  class n_authorization_control_20b83844dc80aa0d application;
   n_authorization_control_f2e1d5e80a7ef898[Resource ownership constraint]
   class n_authorization_control_f2e1d5e80a7ef898 application;
   n_data_model_Note[Note]
@@ -34,6 +36,7 @@ flowchart LR
   class n_storage_ac193b90989396d6 risk;
   n_entrypoint_7821443e29938cb4 -->|Storage write| n_storage_ac193b90989396d6
   n_entrypoint_7687698fbe395d3f -->|authorizes| n_authorization_control_f2e1d5e80a7ef898
+  n_entrypoint_7687698fbe395d3f -->|authorizes| n_authorization_control_20b83844dc80aa0d
   n_entrypoint_7687698fbe395d3f -->|Database read: note.findMany| n_database_754eec4f7490bdab
   n_database_754eec4f7490bdab -->|Database read: note.findMany| n_data_model_Note
   n_entrypoint_7687698fbe395d3f -->|authenticates| n_auth_control_7bf2b37d213596d1
@@ -49,19 +52,24 @@ flowchart LR
   classDef risk fill:#fee2e2,stroke:#dc2626,color:#7f1d1d,stroke-width:3px;
 ```
 
+## Security invariants
+
+No repository-defined security invariants were evaluated in the latest persisted run.
+
 ## Assets and surfaces
 
 - **Authentication check: auth** — auth-control; trust zone: application; evidence: `app/api/notes/route.ts:2`
+- **Resource ownership derivation** — authorization-control; trust zone: application; evidence: `app/api/notes/route.ts:9`
 - **Resource ownership constraint** — authorization-control; trust zone: application; evidence: `app/api/notes/route.ts:4`
 - **Note** — data-model; trust zone: data; evidence: `prisma/schema.prisma:6`
 - **User** — data-model; trust zone: data; evidence: `prisma/schema.prisma:1`
 - **Database read: note.findMany** — database; trust zone: data; evidence: `app/api/notes/route.ts:4`
-- **@aws-sdk/client-s3@^3.0.0** — dependency; trust zone: external; evidence: `package.json`
-- **next@16.0.0** — dependency; trust zone: external; evidence: `package.json`
-- **prisma@^6.0.0** — dependency; trust zone: external; evidence: `package.json`
+- **@aws-sdk/client-s3@^3.0.0** — dependency; trust zone: external; evidence: `package.json:1`
+- **next@16.0.0** — dependency; trust zone: external; evidence: `package.json:1`
+- **prisma@^6.0.0** — dependency; trust zone: external; evidence: `package.json:1`
 - **GET /api/notes** — entrypoint; trust zone: public; evidence: `app/api/notes/route.ts:1`
-- **POST /api/files/upload** — entrypoint; trust zone: public; evidence: `app/api/files/upload/route.ts:4`
-- **Storage write** — storage; trust zone: data; evidence: `app/api/files/upload/route.ts:13`
+- **POST /api/files/upload** — entrypoint; trust zone: public; evidence: `app/api/files/upload/route.ts:3`
+- **Storage write** — storage; trust zone: data; evidence: `app/api/files/upload/route.ts:6`
 
 ## Open risk register
 
@@ -72,7 +80,7 @@ flowchart LR
 - **Attack path:** Public user → POST /api/files/upload → Privileged application operation
 - **Security invariant:** Only authenticated and authorized principals may invoke POST /api/files/upload.
 - **Missing controls:** Verified authentication, Authorization scoped to the target resource
-- **Evidence:** `app/api/files/upload/route.ts:4`
+- **Evidence:** `app/api/files/upload/route.ts:3`
 - **Confidence:** 90%
 
 ### HEDGE-002: New storage write crosses a trust boundary without complete upload controls
@@ -81,8 +89,8 @@ flowchart LR
 - **Status:** open
 - **Attack path:** External user → POST /api/files/upload → Storage write
 - **Security invariant:** Uploaded content must be authenticated, tenant-scoped, type-checked, and bounded before storage.
-- **Missing controls:** Verified authentication, Payload or file size limit, Object ownership constraint
-- **Evidence:** `app/api/files/upload/route.ts:4`, `app/api/files/upload/route.ts:13`
+- **Missing controls:** Verified authentication, Payload or file size limit, Content type allowlist, Object ownership constraint
+- **Evidence:** `app/api/files/upload/route.ts:3`, `app/api/files/upload/route.ts:6`
 - **Confidence:** 90%
 
 
@@ -94,15 +102,15 @@ No verified, accepted, or closed risks are recorded.
 
 | Recorded | Revision | Nodes | Edges | Open risks | Highest | Analysis |
 |---|---|---:|---:|---:|---|---|
-| 2026-07-15T01:09:45.024Z | unknown | 11 | 5 | 2 | high | deterministic-only |
-| 2026-07-15T01:09:44.362Z | unknown | 9 | 4 | 0 | info | deterministic |
+| 2026-07-16T07:07:04.771Z | 9453e107d6aab5eadabfb185e2e974fcf16b6a41 | 12 | 6 | 2 | high | deterministic-only |
+| 2026-07-16T07:07:04.396Z | d3e2dddd94234f2bc26de25a7d12be72fe890b75 | 10 | 5 | 0 | info | deterministic |
 
 ## Assumptions
 
 - Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.
 - Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.
 - AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.
-- Repository evidence coverage: 11/11 candidate files and 29910 bytes analyzed.
+- Repository evidence coverage: 9/9 candidate files and 4959 bytes analyzed.
 
 ## Unknowns
 
@@ -115,6 +123,7 @@ No verified, accepted, or closed risks are recorded.
 ## Update contract
 
 - `hedge init` establishes or refreshes this baseline.
-- Pull requests are compared against the stored graph in `threatmodel.json`.
-- A finding moves to `verified` only after executable counterevidence succeeds on the vulnerable revision and is blocked on the repaired revision while legitimate behavior remains intact.
+- Pull-request checks rebuild graphs from the exact base and head commits; integrity-bound stored state supplies lifecycle history, not comparison authority.
+- A finding moves to `verified` only when one immutable witness reproduces on the vulnerable revision, is blocked by the intended control on the repaired revision, legitimate behavior succeeds, and the exact graph delta proves a relevant architecture control or path change.
+- Deterministic observations, security inferences, and merge decisions remain separate artifacts.
 - Risk acceptance must record who, when, and why; it is never inferred from silence.
