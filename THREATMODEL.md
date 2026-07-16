@@ -2,7 +2,7 @@
 
 > Generated from repository evidence. This document surfaces design-level risks; it is not a vulnerability verdict or a replacement for SAST, DAST, review, or penetration testing.
 
-**Generated:** 2026-07-15T03:16:18.457Z
+**Generated:** 2026-07-16T07:49:21.995Z
 **Framework:** nextjs
 **Open risks:** 0
 
@@ -30,12 +30,22 @@ flowchart LR
   class n_data_model_context_a42b5c90eea88e5d data;
   n_dependency_openai[openai@^6.46.0]
   class n_dependency_openai external;
+  n_entrypoint_3c6ebc2689935c64([Workflow Action self-test push])
+  class n_entrypoint_3c6ebc2689935c64 application;
+  n_entrypoint_60e2a865ae1d2c53([Workflow Action self-test workflow_dispatch])
+  class n_entrypoint_60e2a865ae1d2c53 application;
+  n_entrypoint_7a622e8b27c8af15([Workflow Demo dashboard push])
+  class n_entrypoint_7a622e8b27c8af15 application;
   n_entrypoint_a81fdb37e9c82f4c([Workflow CI pull_request])
   class n_entrypoint_a81fdb37e9c82f4c public;
+  n_entrypoint_acf3c3695b7b2be0([Workflow Demo dashboard workflow_dispatch])
+  class n_entrypoint_acf3c3695b7b2be0 application;
   n_entrypoint_bdc60ceb8a465b49([GitHub Action: Hedge Security Diff])
   class n_entrypoint_bdc60ceb8a465b49 application;
   n_entrypoint_cc80244f096f4928([Workflow CI push])
   class n_entrypoint_cc80244f096f4928 application;
+  n_entrypoint_e12c62a4d132f695([Workflow Action self-test pull_request])
+  class n_entrypoint_e12c62a4d132f695 public;
   n_external_service_context_0be45133050ea32f[OpenAI Responses API and Codex GitHub Action]
   class n_external_service_context_0be45133050ea32f external;
   n_external_service_context_5fefe690ac00b9e2[GitHub API and GitHub Actions]
@@ -76,16 +86,21 @@ No repository-defined security invariants were evaluated in the latest persisted
 - **GitHub tokens and repository write authority** — data-model; trust zone: data; evidence: not available
 - **Maintainer approval boundary for Codex remediation** — data-model; trust zone: data; evidence: not available
 - **Integrity of threatmodel.json, finding history, and verification evidence** — data-model; trust zone: data; evidence: not available
-- **openai@^6.46.0** — dependency; trust zone: external; evidence: `package.json`
+- **openai@^6.46.0** — dependency; trust zone: external; evidence: `package.json:1`
+- **Workflow Action self-test (push)** — entrypoint; trust zone: application; evidence: `.github/workflows/action-self-test.yml:4`
+- **Workflow Action self-test (workflow_dispatch)** — entrypoint; trust zone: application; evidence: `.github/workflows/action-self-test.yml:15`
+- **Workflow Demo dashboard (push)** — entrypoint; trust zone: application; evidence: `.github/workflows/pages.yml:4`
 - **Workflow CI (pull_request)** — entrypoint; trust zone: public; evidence: `.github/workflows/ci.yml:6`
+- **Workflow Demo dashboard (workflow_dispatch)** — entrypoint; trust zone: application; evidence: `.github/workflows/pages.yml:9`
 - **GitHub Action: Hedge Security Diff** — entrypoint; trust zone: application; evidence: `action.yml:1`
 - **Workflow CI (push)** — entrypoint; trust zone: application; evidence: `.github/workflows/ci.yml:4`
+- **Workflow Action self-test (pull_request)** — entrypoint; trust zone: public; evidence: `.github/workflows/action-self-test.yml:10`
 - **OpenAI Responses API and Codex GitHub Action** — external-service; trust zone: external; evidence: not available
 - **GitHub API and GitHub Actions** — external-service; trust zone: external; evidence: not available
-- **OPENAI_API_KEY** — secret; trust zone: privileged; evidence: `src/action/index.ts:33`, `src/cli/index.ts:231`
-- **GITHUB_TOKEN** — secret; trust zone: privileged; evidence: `src/action/index.ts:34`
-- **github-token** — secret; trust zone: privileged; evidence: `action.yml`
-- **openai-api-key** — secret; trust zone: privileged; evidence: `action.yml`
+- **OPENAI_API_KEY** — secret; trust zone: privileged; evidence: `src/action/index.ts:44`, `src/cli/index.ts:244`, `src/setup/doctor.ts:125`, `src/setup/doctor.ts:126`
+- **GITHUB_TOKEN** — secret; trust zone: privileged; evidence: `src/action/index.ts:46`
+- **github-token** — secret; trust zone: privileged; evidence: `action.yml:1`
+- **openai-api-key** — secret; trust zone: privileged; evidence: `action.yml:1`
 
 ## Open risk register
 
@@ -97,13 +112,14 @@ No verified, accepted, or closed risks are recorded.
 
 ## Recent model history
 
-| Recorded                 | Revision | Nodes | Edges | Open risks | Highest | Analysis      |
-| ------------------------ | -------- | ----: | ----: | ---------: | ------- | ------------- |
-| 2026-07-15T03:16:18.473Z | unknown  |    19 |     2 |          0 | info    | deterministic |
-| 2026-07-15T01:09:19.638Z | unknown  |    19 |     2 |          0 | info    | deterministic |
-| 2026-07-15T01:07:24.663Z | unknown  |    19 |     2 |          0 | info    | deterministic |
-| 2026-07-14T14:51:38.794Z | unknown  |    19 |     2 |          0 | info    | deterministic |
-| 2026-07-14T14:46:09.505Z | unknown  |    19 |     2 |          0 | info    | deterministic |
+| Recorded                 | Revision                                 | Nodes | Edges | Open risks | Highest | Analysis      |
+| ------------------------ | ---------------------------------------- | ----: | ----: | ---------: | ------- | ------------- |
+| 2026-07-16T07:49:22.010Z | d8b0808d2b720219fd7540a0275be69e34b3907d |    24 |     2 |          0 | info    | deterministic |
+| 2026-07-15T03:16:18.473Z | unknown                                  |    19 |     2 |          0 | info    | deterministic |
+| 2026-07-15T01:09:19.638Z | unknown                                  |    19 |     2 |          0 | info    | deterministic |
+| 2026-07-15T01:07:24.663Z | unknown                                  |    19 |     2 |          0 | info    | deterministic |
+| 2026-07-14T14:51:38.794Z | unknown                                  |    19 |     2 |          0 | info    | deterministic |
+| 2026-07-14T14:46:09.505Z | unknown                                  |    19 |     2 |          0 | info    | deterministic |
 
 ## Assumptions
 
@@ -117,11 +133,11 @@ No verified, accepted, or closed risks are recorded.
 - Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.
 - Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.
 - AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.
-- Repository evidence coverage: 52/74 candidate files and 349914 bytes analyzed.
+- Repository evidence coverage: 87/87 candidate files and 826894 bytes analyzed.
 
 ## Unknowns
 
-- Analysis coverage was bounded: 52/74 candidate files (349914 bytes) were inspected; 0 exceeded the file limit and 22 exceeded the byte budget.
+- None recorded.
 
 ## Update contract
 

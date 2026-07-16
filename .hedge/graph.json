@@ -1,6 +1,6 @@
 {
   "schemaVersion": "0.1",
-  "generatedAt": "2026-07-15T03:16:18.457Z",
+  "generatedAt": "2026-07-16T07:49:21.995Z",
   "repository": "local",
   "framework": "nextjs",
   "nodes": [
@@ -118,13 +118,105 @@
       "evidence": [
         {
           "file": "package.json",
-          "extractor": "package-extractor"
+          "line": 1,
+          "snippet": "{",
+          "extractor": "package-extractor",
+          "subjectId": "dependency:openai"
         }
       ],
       "controls": [],
       "metadata": {
         "name": "openai",
         "version": "^6.46.0"
+      }
+    },
+    {
+      "id": "entrypoint:3c6ebc2689935c64",
+      "kind": "entrypoint",
+      "label": "Workflow Action self-test (push)",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": ".github/workflows/action-self-test.yml",
+          "line": 4,
+          "snippet": "push:",
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:3c6ebc2689935c64"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "WORKFLOW",
+        "event": "push",
+        "file": ".github/workflows/action-self-test.yml",
+        "pullRequestTarget": false,
+        "permissions": {
+          "workflow:contents": "read"
+        },
+        "writePermissions": [],
+        "checksOutPullRequestHead": false,
+        "untrustedInterpolationInRun": false,
+        "checkoutPersistsCredentials": true
+      }
+    },
+    {
+      "id": "entrypoint:60e2a865ae1d2c53",
+      "kind": "entrypoint",
+      "label": "Workflow Action self-test (workflow_dispatch)",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": ".github/workflows/action-self-test.yml",
+          "line": 15,
+          "snippet": "workflow_dispatch:",
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:60e2a865ae1d2c53"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "WORKFLOW",
+        "event": "workflow_dispatch",
+        "file": ".github/workflows/action-self-test.yml",
+        "pullRequestTarget": false,
+        "permissions": {
+          "workflow:contents": "read"
+        },
+        "writePermissions": [],
+        "checksOutPullRequestHead": false,
+        "untrustedInterpolationInRun": false,
+        "checkoutPersistsCredentials": true
+      }
+    },
+    {
+      "id": "entrypoint:7a622e8b27c8af15",
+      "kind": "entrypoint",
+      "label": "Workflow Demo dashboard (push)",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": ".github/workflows/pages.yml",
+          "line": 4,
+          "snippet": "push:",
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:7a622e8b27c8af15"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "WORKFLOW",
+        "event": "push",
+        "file": ".github/workflows/pages.yml",
+        "pullRequestTarget": false,
+        "permissions": {
+          "workflow:contents": "read",
+          "workflow:pages": "write",
+          "workflow:id-token": "write"
+        },
+        "writePermissions": ["workflow:id-token", "workflow:pages"],
+        "checksOutPullRequestHead": false,
+        "untrustedInterpolationInRun": false,
+        "checkoutPersistsCredentials": true
       }
     },
     {
@@ -137,7 +229,8 @@
           "file": ".github/workflows/ci.yml",
           "line": 6,
           "snippet": "pull_request:",
-          "extractor": "github-workflow-metadata"
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:a81fdb37e9c82f4c"
         }
       ],
       "controls": [],
@@ -156,6 +249,37 @@
       }
     },
     {
+      "id": "entrypoint:acf3c3695b7b2be0",
+      "kind": "entrypoint",
+      "label": "Workflow Demo dashboard (workflow_dispatch)",
+      "trustZone": "application",
+      "evidence": [
+        {
+          "file": ".github/workflows/pages.yml",
+          "line": 9,
+          "snippet": "workflow_dispatch:",
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:acf3c3695b7b2be0"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "WORKFLOW",
+        "event": "workflow_dispatch",
+        "file": ".github/workflows/pages.yml",
+        "pullRequestTarget": false,
+        "permissions": {
+          "workflow:contents": "read",
+          "workflow:pages": "write",
+          "workflow:id-token": "write"
+        },
+        "writePermissions": ["workflow:id-token", "workflow:pages"],
+        "checksOutPullRequestHead": false,
+        "untrustedInterpolationInRun": false,
+        "checkoutPersistsCredentials": true
+      }
+    },
+    {
       "id": "entrypoint:bdc60ceb8a465b49",
       "kind": "entrypoint",
       "label": "GitHub Action: Hedge Security Diff",
@@ -165,7 +289,8 @@
           "file": "action.yml",
           "line": 1,
           "snippet": "name: Hedge Security Diff",
-          "extractor": "github-action-metadata"
+          "extractor": "github-action-metadata",
+          "subjectId": "entrypoint:bdc60ceb8a465b49"
         }
       ],
       "controls": [],
@@ -184,7 +309,8 @@
           "file": ".github/workflows/ci.yml",
           "line": 4,
           "snippet": "push:",
-          "extractor": "github-workflow-metadata"
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:cc80244f096f4928"
         }
       ],
       "controls": [],
@@ -192,6 +318,35 @@
         "method": "WORKFLOW",
         "event": "push",
         "file": ".github/workflows/ci.yml",
+        "pullRequestTarget": false,
+        "permissions": {
+          "workflow:contents": "read"
+        },
+        "writePermissions": [],
+        "checksOutPullRequestHead": false,
+        "untrustedInterpolationInRun": false,
+        "checkoutPersistsCredentials": true
+      }
+    },
+    {
+      "id": "entrypoint:e12c62a4d132f695",
+      "kind": "entrypoint",
+      "label": "Workflow Action self-test (pull_request)",
+      "trustZone": "public",
+      "evidence": [
+        {
+          "file": ".github/workflows/action-self-test.yml",
+          "line": 10,
+          "snippet": "pull_request:",
+          "extractor": "github-workflow-metadata",
+          "subjectId": "entrypoint:e12c62a4d132f695"
+        }
+      ],
+      "controls": [],
+      "metadata": {
+        "method": "WORKFLOW",
+        "event": "pull_request",
+        "file": ".github/workflows/action-self-test.yml",
         "pullRequestTarget": false,
         "permissions": {
           "workflow:contents": "read"
@@ -234,15 +389,31 @@
       "evidence": [
         {
           "file": "src/action/index.ts",
-          "line": 33,
-          "snippet": "const apiKey = core.getInput(\"openai-api-key\") || process.env.OPENAI_API_KEY;",
-          "extractor": "typescript-ast-secret"
+          "line": 44,
+          "snippet": "const configuredApiKey = core.getInput(\"openai-api-key\") || process.env.OPENAI_API_KEY;",
+          "extractor": "typescript-ast-secret",
+          "subjectId": "secret:07d154c042bee004"
         },
         {
           "file": "src/cli/index.ts",
-          "line": 231,
+          "line": 244,
           "snippet": "apiKey: options.offline ? undefined : process.env.OPENAI_API_KEY,",
-          "extractor": "typescript-ast-secret"
+          "extractor": "typescript-ast-secret",
+          "subjectId": "secret:07d154c042bee004"
+        },
+        {
+          "file": "src/setup/doctor.ts",
+          "line": 125,
+          "snippet": "status: process.env.OPENAI_API_KEY ? \"pass\" : \"warn\",",
+          "extractor": "typescript-ast-secret",
+          "subjectId": "secret:07d154c042bee004"
+        },
+        {
+          "file": "src/setup/doctor.ts",
+          "line": 126,
+          "snippet": "detail: process.env.OPENAI_API_KEY",
+          "extractor": "typescript-ast-secret",
+          "subjectId": "secret:07d154c042bee004"
         }
       ],
       "controls": [],
@@ -258,9 +429,10 @@
       "evidence": [
         {
           "file": "src/action/index.ts",
-          "line": 34,
+          "line": 46,
           "snippet": "const githubToken = core.getInput(\"github-token\") || process.env.GITHUB_TOKEN;",
-          "extractor": "typescript-ast-secret"
+          "extractor": "typescript-ast-secret",
+          "subjectId": "secret:6b6b2d1fd282b2e6"
         }
       ],
       "controls": [],
@@ -276,8 +448,10 @@
       "evidence": [
         {
           "file": "action.yml",
+          "line": 1,
           "snippet": "github-token: GitHub token used to post or update the PR report.",
-          "extractor": "github-action-metadata"
+          "extractor": "github-action-metadata",
+          "subjectId": "secret:action-input:github-token"
         }
       ],
       "controls": [],
@@ -293,8 +467,10 @@
       "evidence": [
         {
           "file": "action.yml",
+          "line": 1,
           "snippet": "openai-api-key: OpenAI API key. Prefer workload identity federation for production.",
-          "extractor": "github-action-metadata"
+          "extractor": "github-action-metadata",
+          "subjectId": "secret:action-input:openai-api-key"
         }
       ],
       "controls": [],
@@ -313,8 +489,10 @@
       "evidence": [
         {
           "file": "action.yml",
+          "line": 1,
           "snippet": "openai-api-key: OpenAI API key. Prefer workload identity federation for production.",
-          "extractor": "github-action-metadata"
+          "extractor": "github-action-metadata",
+          "subjectId": "edge:2b98dd75d6c02557"
         }
       ],
       "controls": [],
@@ -329,8 +507,10 @@
       "evidence": [
         {
           "file": "action.yml",
+          "line": 1,
           "snippet": "github-token: GitHub token used to post or update the PR report.",
-          "extractor": "github-action-metadata"
+          "extractor": "github-action-metadata",
+          "subjectId": "edge:7c27c7048344cc78"
         }
       ],
       "controls": [],
@@ -348,9 +528,20 @@
     "Detected controls are evidence that relevant code exists, not proof that the control is correct or complete.",
     "Public exposure is inferred from supported route and workflow conventions and must be confirmed against deployment configuration.",
     "AST analysis is handler-scoped for supported TypeScript and JavaScript entry points; same-file helpers and supported Next.js middleware are followed, while arbitrary imported helper behavior remains partially unknown.",
-    "Repository evidence coverage: 52/74 candidate files and 349914 bytes analyzed."
+    "Repository evidence coverage: 87/87 candidate files and 826894 bytes analyzed."
   ],
-  "unknowns": [
-    "Analysis coverage was bounded: 52/74 candidate files (349914 bytes) were inspected; 0 exceeded the file limit and 22 exceeded the byte budget."
-  ]
+  "unknowns": [],
+  "coverage": {
+    "status": "complete",
+    "discoveredFiles": 87,
+    "includedFiles": 87,
+    "includedBytes": 826894,
+    "omitted": {
+      "fileLimit": 0,
+      "byteLimit": 0,
+      "unsafeOrUnreadable": 0,
+      "binary": 0
+    },
+    "diagnostics": []
+  }
 }
