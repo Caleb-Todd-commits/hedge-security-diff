@@ -26,7 +26,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - First-class `coverage`, `analysisHealth`, and `confirmedNoDelta` results; inferred controls and incomplete evidence remain unknown.
 - Trusted-base loading of `.hedge.yml`, `.hedge/context.yml`, and `threatmodel.json` for pull requests.
 - GitHub API patch collection bounded by the trusted base policy.
-- GPT-5.6 Luna/Sol routing with Structured Outputs and combined token usage reporting.
+- Cost-bounded GPT-5.6 routing with strict Structured Outputs: routine deterministic recommendations use zero calls, sensitive/high-consequence deltas go directly to Sol, and ambiguous deltas use Luna before optional Sol.
 - Credential-separated PR execution: secretless collection, no-checkout model reasoning, and a no-OpenAI-key publisher connected by RunManifest v0.1 SHA-256 bindings.
 - Evidence-reference validation: unsupported model claims are omitted rather than converted into fake provenance.
 - Prompt-injection isolation: repository content is delimited untrusted data, credential-shaped values are redacted before model/report use, analysis receives no shell or GitHub-write tools, and a boundary-failure response is discarded.
@@ -36,7 +36,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Approval-gated `@hedge fix HEDGE-NNN` example using an immutable `openai/codex-action` commit, an isolated patch artifact, normalized per-risk concurrency, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 230 unit, contract, replay, and schema tests.
+- 45-case deterministic DriftBench suite and 254 unit, contract, replay, and schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -103,6 +103,21 @@ Enable GPT-5.6 reasoning:
 export OPENAI_API_KEY="..."
 node dist/cli/index.cjs check --base HEAD~1 --head HEAD
 ```
+
+### Model spend guardrails
+
+Hedge spends model tokens only where deterministic evidence leaves useful interpretation work:
+
+| Result                                             | Model route                      | Maximum calls |
+| -------------------------------------------------- | -------------------------------- | ------------: |
+| Complete exact no-delta                            | No model                         |             0 |
+| Low/medium deterministic recommendation            | No model                         |             0 |
+| Deterministically sensitive or high/critical delta | Sol directly                     |             1 |
+| Ambiguous architecture delta                       | Luna, then Sol only if requested |             2 |
+
+Luna uses minimal reasoning, a 384-output-token ceiling, and at most 12 KiB of UTF-8-safe patch data. Sol uses low reasoning, a 4,096-output-token ceiling, and at most 48 KiB of patch data. The complete serialized request is also rejected locally above 48 KiB for Luna or 160 KiB for Sol. The output ceilings cover visible and reasoning output; they are not total request-token caps. Structured prompt inputs are minified, automatic retries are disabled, and accepted model claims must still resolve to the exact deterministic evidence index. Coverage and health remain independent: skipping unnecessary model work never upgrades a partial result to complete.
+
+Usage reports provider-returned input, output, cached-input, reasoning, and total tokens rather than guessing a dollar price. Hedge relies only on provider-default implicit prompt caching; explicit cache writes remain disabled until repeated stable-prefix reuse is measured, since low reuse can make an explicit write policy cost more.
 
 Create durable review artifacts:
 
@@ -176,7 +191,7 @@ Trusted base policy, context, and valid lifecycle register
                   ↓
  RunManifest-bound handoff to no-checkout reasoning job
                   ↓
- Luna triage → forced Sol interpretation for sensitive deltas
+ Cost router → deterministic-only / direct Sol / Luna → optional Sol
                   ↓
  Schema validation + evidence resolution
                   ↓
@@ -210,6 +225,7 @@ Trusted base policy, context, and valid lifecycle register
 13. **Facts, hypotheses, and verdicts are separate.** Observations are deterministic, inferences carry confidence and assumptions, and decisions identify the policy or threshold that produced them.
 14. **Security commitments are executable configuration.** Explicit invariants are versioned with the trusted base and evaluated before model reasoning.
 15. **The full demo must be replayable.** Recorded model boundaries may reproduce a run, but are labeled as recorded rather than fresh API output.
+16. **Spend follows uncertainty.** Complete routine deterministic results use no model; bounded reasoning is reserved for sensitive or ambiguous architecture changes.
 
 ## Demonstration
 
@@ -239,7 +255,7 @@ Start with [`START_HERE.md`](START_HERE.md), then read [`MASTER_PLAN.md`](MASTER
 
 ## How Codex and GPT-5.6 shaped Hedge
 
-The initial Build Week foundation was created in ChatGPT with GPT-5.6 Sol, then transferred into a primary Codex thread. GPT-5.6 is also part of Hedge's runtime: deterministic extraction establishes the architecture delta, Luna performs bounded triage, and Sol interprets evidence through strict Structured Outputs. Codex is used for repository implementation, tests, evaluation, security-boundary review, and the approval-gated draft remediation workflow. The human author retained the product direction, security commitments, and final decisions. See the [provenance record](docs/BUILD_WEEK_PROVENANCE.md) and [decision log](docs/DECISIONS.md).
+The initial Build Week foundation was created in ChatGPT with GPT-5.6 Sol, then transferred into a primary Codex thread. GPT-5.6 is also part of Hedge's runtime: deterministic extraction establishes the architecture delta, routine recommendations remain deterministic-only, sensitive changes route directly to Sol, and Luna triages only ambiguous changes before optional Sol interpretation through strict Structured Outputs. Codex is used for repository implementation, tests, evaluation, security-boundary review, and the approval-gated draft remediation workflow. The human author retained the product direction, security commitments, and final decisions. See the [provenance record](docs/BUILD_WEEK_PROVENANCE.md) and [decision log](docs/DECISIONS.md).
 
 ## License
 

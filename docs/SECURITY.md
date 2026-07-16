@@ -121,7 +121,8 @@ Controls:
 - Partial and unsupported coverage produce degraded or failed health and cannot confirm no-delta, satisfy an invariant, or advance mitigation state.
 - Deterministic relevance filter before model routing.
 - No model call when no graph delta exists.
-- Luna triage before Sol analysis.
+- Zero-call deterministic routes, direct Sol analysis for deterministically sensitive/high-consequence deltas, and Luna triage only for otherwise ambiguous deltas.
+- Strict request-byte, patch-byte, output-token, reasoning-effort, finding-count, and retry ceilings; an oversized request fails locally before dispatch.
 - Truncation is disclosed in the report.
 
 Production should additionally enforce repository- and organization-level spend ceilings.

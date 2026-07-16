@@ -7,12 +7,19 @@ import {
   type HedgeConfig,
   type HedgeContext
 } from "../domain/schemas.js";
-import { analysisSystemPrompt, triageSystemPrompt } from "../model/prompts.js";
+import { MODEL_REQUEST_POLICY } from "../model/client.js";
+import {
+  ANALYSIS_PATCH_MAX_BYTES,
+  TRIAGE_PATCH_MAX_BYTES,
+  analysisSystemPrompt,
+  triageSystemPrompt
+} from "../model/prompts.js";
+import { ModelAnalysisSchema, TriageResultSchema } from "../model/schemas.js";
 import { stableHash } from "../utils/hash.js";
 import { HEDGE_VERSION } from "../version.js";
 
-export const PIPELINE_SCHEMA_VERSION = "hedge-pipeline-schema-v0.1.1";
-export const PROMPT_VERSION = "hedge-prompt-v0.5.2";
+export const PIPELINE_SCHEMA_VERSION = "hedge-pipeline-schema-v0.1.2";
+export const PROMPT_VERSION = "hedge-prompt-v0.5.3";
 export const EXTRACTOR_VERSION = "hedge-next-typescript-extractor-v0.5.2";
 
 export function currentActionVersion(explicitActionRef?: string): string {
@@ -56,7 +63,16 @@ export function pipelineDigests(
       {
         version: PROMPT_VERSION,
         triage: triageSystemPrompt(),
-        analysis: analysisSystemPrompt()
+        analysis: analysisSystemPrompt(),
+        patchBytes: {
+          triage: TRIAGE_PATCH_MAX_BYTES,
+          analysis: ANALYSIS_PATCH_MAX_BYTES
+        },
+        requestPolicy: MODEL_REQUEST_POLICY,
+        outputSchemas: {
+          triage: z.toJSONSchema(TriageResultSchema, { target: "draft-2020-12" }),
+          analysis: z.toJSONSchema(ModelAnalysisSchema, { target: "draft-2020-12" })
+        }
       },
       64
     )

@@ -211,7 +211,8 @@ export async function checkHedge(options: CheckOptions): Promise<CheckResult> {
         notes: ["No model call was made."]
       },
       limitations: [],
-      model: "none"
+      model: "none",
+      modelRoute: "none"
     };
     const report = renderNoDeltaReport(analysis);
     if (options.writeArtifacts !== false) {

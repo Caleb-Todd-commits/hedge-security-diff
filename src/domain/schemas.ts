@@ -339,6 +339,9 @@ export const AnalysisResultSchema = z.object({
   summary: z.string(),
   surfaceChanged: z.boolean(),
   confirmedNoDelta: z.boolean().optional(),
+  modelRoute: z
+    .enum(["none", "deterministic", "triage", "analysis", "triage-analysis", "fallback"])
+    .optional(),
   coverage: CoverageSchema.optional(),
   analysisHealth: AnalysisHealthSchema.optional(),
   observations: z.array(ObservationSchema).optional(),
@@ -354,7 +357,14 @@ export const AnalysisResultSchema = z.object({
   limitations: z.array(z.string()).default([]),
   model: z.string().optional(),
   usage: z
-    .object({ inputTokens: z.number().optional(), outputTokens: z.number().optional() })
+    .object({
+      inputTokens: z.number().int().nonnegative().optional(),
+      outputTokens: z.number().int().nonnegative().optional(),
+      totalTokens: z.number().int().nonnegative().optional(),
+      cachedInputTokens: z.number().int().nonnegative().optional(),
+      reasoningTokens: z.number().int().nonnegative().optional(),
+      modelCalls: z.number().int().nonnegative().optional()
+    })
     .optional()
 });
 
@@ -396,8 +406,15 @@ export const RunRecordSchema = z.object({
   highestSeverity: SeveritySchema,
   architectureChanged: z.boolean(),
   model: z.string().optional(),
+  modelRoute: z
+    .enum(["none", "deterministic", "triage", "analysis", "triage-analysis", "fallback"])
+    .optional(),
   inputTokens: z.number().int().nonnegative().optional(),
-  outputTokens: z.number().int().nonnegative().optional()
+  outputTokens: z.number().int().nonnegative().optional(),
+  totalTokens: z.number().int().nonnegative().optional(),
+  cachedInputTokens: z.number().int().nonnegative().optional(),
+  reasoningTokens: z.number().int().nonnegative().optional(),
+  modelCalls: z.number().int().nonnegative().optional()
 });
 
 export const ThreatRegisterSchema = z.object({

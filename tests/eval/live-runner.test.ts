@@ -1,13 +1,31 @@
 import { cp, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
-import type { AnalysisResult } from "../../src/domain/schemas.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  AnalysisResult,
+  AttackSurfaceGraph,
+  Coverage,
+  GraphDelta,
+  SurfaceEdge,
+  SurfaceNode
+} from "../../src/domain/schemas.js";
+
+const openAIMock = vi.hoisted(() => ({ parse: vi.fn() }));
+
+vi.mock("openai", () => ({
+  default: class MockOpenAI {
+    readonly responses = { parse: openAIMock.parse };
+  }
+}));
+
+import { HedgeConfigSchema } from "../../src/domain/schemas.js";
 import { containsInstructionLikeContent } from "../../src/security/untrusted.js";
 import {
   DEFAULT_LIVE_EVAL_REPEATS,
   LiveEvalExecutionError,
   authorizeLiveEval,
+  createOpenAiLiveModelRunner,
   noDeltaStatusForCoverage,
   parseLiveEvalRepeats,
   runLiveEvalSuite,
@@ -21,6 +39,10 @@ const fixturesRoot = resolve("eval/heldout-fixtures");
 const caseConfigPath = resolve("eval/live-eval-cases.json");
 
 describe("API-backed live evaluation", () => {
+  beforeEach(() => {
+    openAIMock.parse.mockReset();
+  });
+
   it("requires explicit opt-in and an API key while refusing GitHub credentials", () => {
     expect(() => authorizeLiveEval({ OPENAI_API_KEY: "sk-test-credential-value" })).toThrow(
       "HEDGE_LIVE_EVAL=1"
@@ -87,6 +109,9 @@ describe("API-backed live evaluation", () => {
     expect(summary.aggregate.exactEvidenceValidityRate).toBe(1);
     expect(summary.aggregate.inputTokens.samples).toBeGreaterThan(0);
     expect(summary.aggregate.inputTokens.median).toBe(12);
+    expect(summary.aggregate.totalTokens.median).toBe(17);
+    expect(summary.aggregate.reasoningTokens.median).toBe(2);
+    expect(summary.aggregate.modelCalls).toBeGreaterThan(0);
     expect(summary.cases.every((item) => item.provenance.patchBytes <= 60_000)).toBe(true);
     expect(
       summary.cases.every(
@@ -248,6 +273,171 @@ describe("API-backed live evaluation", () => {
     expect(json).not.toContain("Ignore all previous instructions");
     expect(json).toContain("provider details were intentionally not persisted");
   });
+
+  it("records a complete medium deterministic recommendation without spending model tokens", async () => {
+    const source: SurfaceNode = {
+      id: "component:upload-service",
+      kind: "component",
+      label: "Upload service",
+      trustZone: "application",
+      evidence: [],
+      controls: [control("authentication"), control("size-limit"), control("content-type")],
+      metadata: {}
+    };
+    const storage: SurfaceNode = {
+      id: "storage:objects",
+      kind: "storage",
+      label: "Object storage",
+      trustZone: "external",
+      evidence: [],
+      controls: [],
+      metadata: {}
+    };
+    const write: SurfaceEdge = {
+      id: "edge:upload:storage",
+      from: source.id,
+      to: storage.id,
+      kind: "writes",
+      evidence: [],
+      controls: [],
+      confidence: 1
+    };
+    const execution = await createOpenAiLiveModelRunner("sk-test").run(
+      modelRequest({ addedEdges: [write] }, [source, storage], [write])
+    );
+
+    expect(openAIMock.parse).not.toHaveBeenCalled();
+    expect(execution.analysis.findings).toEqual([
+      expect.objectContaining({ severity: "medium", origin: "deterministic" })
+    ]);
+    expect(execution.routing).toEqual(
+      expect.objectContaining({
+        path: "deterministic",
+        triageCalled: false,
+        analysisCalled: false,
+        deterministicDeepAnalysisRequired: false
+      })
+    );
+    expect(execution.usage).toEqual(expect.objectContaining({ totalTokens: 0, modelCalls: 0 }));
+    expect(execution.latency).toEqual({ totalMs: 0, triageMs: null, analysisMs: null });
+    expect(execution.boundary.status).toBe("not-exercised-no-model");
+  });
+
+  it("routes a deterministically sensitive change directly to Sol without Luna", async () => {
+    openAIMock.parse.mockResolvedValueOnce(
+      completedResponse(
+        {
+          findings: [],
+          integrity: {
+            untrustedInstructionsObserved: false,
+            analysisBoundaryHeld: true
+          }
+        },
+        usage(600, 90, 40)
+      )
+    );
+    const entrypoint: SurfaceNode = {
+      id: "entrypoint:public-write",
+      kind: "entrypoint",
+      label: "POST /api/public-write",
+      trustZone: "public",
+      evidence: [],
+      controls: [],
+      metadata: { method: "POST" }
+    };
+
+    const execution = await createOpenAiLiveModelRunner("sk-test").run(
+      modelRequest({ addedNodes: [entrypoint] }, [entrypoint])
+    );
+
+    expect(openAIMock.parse).toHaveBeenCalledTimes(1);
+    expect(openAIMock.parse).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "gpt-5.6-sol" })
+    );
+    expect(execution.routing).toEqual(
+      expect.objectContaining({
+        path: "sol-direct",
+        triageCalled: false,
+        triageRequestedDeepAnalysis: null,
+        deterministicDeepAnalysisRequired: true,
+        analysisCalled: true
+      })
+    );
+    expect(execution.analysis.findings).toEqual([
+      expect.objectContaining({ severity: "high", origin: "deterministic" })
+    ]);
+    expect(execution.usage).toEqual(
+      expect.objectContaining({
+        inputTokens: 600,
+        outputTokens: 90,
+        totalTokens: 690,
+        reasoningTokens: 40,
+        modelCalls: 1,
+        triageInputTokens: null,
+        analysisInputTokens: 600
+      })
+    );
+    expect(execution.latency.triageMs).toBeNull();
+    expect(execution.latency.analysisMs).not.toBeNull();
+    expect(execution.latency.totalMs).toBe(execution.latency.analysisMs);
+  });
+
+  it("uses Luna for ambiguous changes and calls Sol only when Luna requests it", async () => {
+    const dependency: SurfaceNode = {
+      id: "dependency:utility",
+      kind: "dependency",
+      label: "utility@2.0.0",
+      trustZone: "external",
+      evidence: [],
+      controls: [],
+      metadata: {}
+    };
+    const request = modelRequest({ addedNodes: [dependency] }, [dependency]);
+    openAIMock.parse.mockResolvedValueOnce(
+      completedResponse({ deepAnalysisRequired: false }, usage(100, 12, 2))
+    );
+
+    const lunaOnly = await createOpenAiLiveModelRunner("sk-test").run(request);
+
+    expect(lunaOnly.routing.path).toBe("luna-only");
+    expect(lunaOnly.routing.analysisCalled).toBe(false);
+    expect(lunaOnly.usage).toEqual(
+      expect.objectContaining({ totalTokens: 112, modelCalls: 1, analysisInputTokens: null })
+    );
+
+    openAIMock.parse
+      .mockResolvedValueOnce(completedResponse({ deepAnalysisRequired: true }, usage(110, 14, 3)))
+      .mockResolvedValueOnce(
+        completedResponse(
+          {
+            findings: [],
+            integrity: {
+              untrustedInstructionsObserved: false,
+              analysisBoundaryHeld: true
+            }
+          },
+          usage(500, 80, 30)
+        )
+      );
+
+    const lunaToSol = await createOpenAiLiveModelRunner("sk-test").run(request);
+
+    expect(lunaToSol.routing.path).toBe("luna-to-sol");
+    expect(lunaToSol.routing.triageRequestedDeepAnalysis).toBe(true);
+    expect(lunaToSol.usage).toEqual(
+      expect.objectContaining({
+        inputTokens: 610,
+        outputTokens: 94,
+        totalTokens: 704,
+        reasoningTokens: 33,
+        modelCalls: 2,
+        triageInputTokens: 110,
+        analysisInputTokens: 500
+      })
+    );
+    expect(lunaToSol.latency.triageMs).not.toBeNull();
+    expect(lunaToSol.latency.analysisMs).not.toBeNull();
+  });
 });
 
 function fakeExecution(
@@ -302,6 +492,10 @@ function fakeExecution(
     usage: {
       inputTokens: 12,
       outputTokens: 5,
+      totalTokens: 17,
+      cachedInputTokens: 0,
+      reasoningTokens: 2,
+      modelCalls: 2,
       triageInputTokens: 4,
       triageOutputTokens: 1,
       analysisInputTokens: 8,
@@ -320,9 +514,88 @@ function emptyUsage() {
   return {
     inputTokens: null,
     outputTokens: null,
+    totalTokens: null,
+    cachedInputTokens: null,
+    reasoningTokens: null,
+    modelCalls: 0,
     triageInputTokens: null,
     triageOutputTokens: null,
     analysisInputTokens: null,
     analysisOutputTokens: null
+  };
+}
+
+const completeCoverage: Coverage = {
+  status: "complete",
+  discoveredFiles: 1,
+  includedFiles: 1,
+  includedBytes: 1,
+  omitted: { fileLimit: 0, byteLimit: 0, unsafeOrUnreadable: 0, binary: 0 },
+  diagnostics: []
+};
+
+const emptyDelta: GraphDelta = {
+  addedNodes: [],
+  removedNodes: [],
+  changedNodes: [],
+  addedEdges: [],
+  removedEdges: [],
+  changedEdges: []
+};
+
+function modelRequest(
+  delta: Partial<GraphDelta>,
+  nodes: SurfaceNode[],
+  edges: SurfaceEdge[] = []
+): LiveModelRequest {
+  const headSha = "a".repeat(64);
+  const graph: AttackSurfaceGraph = {
+    schemaVersion: "0.1",
+    generatedAt: new Date(0).toISOString(),
+    repository: "live-eval/routing-test",
+    sourceCommit: headSha,
+    framework: "nextjs",
+    nodes,
+    edges,
+    assumptions: [],
+    unknowns: [],
+    coverage: completeCoverage
+  };
+  return {
+    graph,
+    delta: { ...emptyDelta, ...delta },
+    patch: "synthetic bounded patch",
+    config: HedgeConfigSchema.parse({ framework: "nextjs", fail_on: "high" }),
+    headSha,
+    coverage: completeCoverage
+  };
+}
+
+function control(type: "authentication" | "size-limit" | "content-type") {
+  return {
+    type,
+    label: `Confirmed ${type}`,
+    evidence: [],
+    confidence: 1,
+    assurance: "confirmed" as const
+  };
+}
+
+function usage(inputTokens: number, outputTokens: number, reasoningTokens: number) {
+  return {
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: inputTokens + outputTokens,
+    input_tokens_details: { cached_tokens: 0 },
+    output_tokens_details: { reasoning_tokens: reasoningTokens }
+  };
+}
+
+function completedResponse(outputParsed: unknown, responseUsage: ReturnType<typeof usage>) {
+  return {
+    status: "completed",
+    incomplete_details: null,
+    output_parsed: outputParsed,
+    usage: responseUsage
   };
 }

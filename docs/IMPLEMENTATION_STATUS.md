@@ -16,7 +16,7 @@
 | Observation/inference/decision model      | Working                         | deterministic facts, confidence-bearing hypotheses, auditable allow/warn/block record    |
 | End-to-end replay harness                 | Working                         | `hedge replay`, base/head fixture, recorded model boundary, expected-result assertions   |
 | Deterministic custom policies             | Working                         | trusted `.hedge.yml` policy rules                                                        |
-| GPT-5.6 routing                           | Implemented                     | Luna triage, Sol interpretation, Structured Outputs, safe fallback                       |
+| Cost-bounded GPT-5.6 routing              | Implemented                     | Zero-call deterministic paths, direct Sol for sensitive deltas, Luna for ambiguity       |
 | Evidence validation                       | Working                         | model findings must cite actual delta evidence                                           |
 | Prompt-injection boundary                 | Working                         | no tools, redaction, boundary-failure rejection, evidence-only claims, safe rendering    |
 | Reports                                   | Working                         | Markdown, interactive HTML, SARIF, delta JSON, analysis JSON                             |
@@ -30,7 +30,7 @@
 | Proof bundle                              | Working                         | SHA-256 manifest plus graph/register/source coherence                                    |
 | Public JSON Schemas                       | Generated                       | `schemas/*.schema.json`                                                                  |
 | DriftBench                                | 45 cases pass                   | `eval/results.md`, `eval/results.json`                                                   |
-| Unit/contract/replay/schema tests         | 230 pass                        | `npm test`                                                                               |
+| Unit/contract/replay/schema tests         | 254 pass                        | `npm test`                                                                               |
 | Demo repository                           | Working generator               | prepared branches and executable witness                                                 |
 
 ## Implemented but not live-validated here

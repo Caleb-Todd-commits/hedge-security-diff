@@ -103,6 +103,16 @@ outputs:
     description: "Analysis health: complete, degraded, or failed."
   confirmed-no-delta:
     description: "True only for exact revisions with complete supported coverage and no graph delta."
+  model-route:
+    description: "Cost-aware model route: none, deterministic, triage, analysis, triage-analysis, or fallback."
+  model-calls:
+    description: "Number of completed OpenAI model calls reported for this run."
+  input-tokens:
+    description: "Provider-reported input tokens across completed model calls."
+  output-tokens:
+    description: "Provider-reported output tokens, including reasoning tokens, across completed model calls."
+  total-tokens:
+    description: "Provider-reported total tokens across completed model calls."
   run-manifest-path:
     description: "Path to the integrity-bound RunManifest v0.1 artifact."
   collection-path:

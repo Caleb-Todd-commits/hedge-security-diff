@@ -393,6 +393,7 @@ function renderTechnicalDetails(
     `- Deterministic observations: **${analysis.observations?.length ?? 0}**`,
     `- Security inferences: **${analysis.inferences?.length ?? 0}**`,
     `- Recorded decisions: **${analysis.decisions?.length ?? 0}**`,
+    `- Model route: **${safeMarkdownText(analysis.modelRoute ?? "not reported")}**`,
     ""
   );
 
@@ -401,8 +402,12 @@ function renderTechnicalDetails(
       "#### Model usage",
       "",
       `- Model: **${safeMarkdownText(analysis.model ?? "unknown")}**`,
+      `- Calls: **${analysis.usage.modelCalls ?? "not reported"}**`,
       `- Input tokens: **${analysis.usage.inputTokens ?? "not reported"}**`,
       `- Output tokens: **${analysis.usage.outputTokens ?? "not reported"}**`,
+      `- Total tokens: **${analysis.usage.totalTokens ?? "not reported"}**`,
+      `- Cached input tokens: **${analysis.usage.cachedInputTokens ?? "not reported"}**`,
+      `- Reasoning tokens: **${analysis.usage.reasoningTokens ?? "not reported"}**`,
       ""
     );
   }

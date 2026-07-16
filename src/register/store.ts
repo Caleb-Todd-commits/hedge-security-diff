@@ -312,8 +312,13 @@ export function recordRun(
     highestSeverity: highestSeverity(openFindings.map((finding) => finding.severity)),
     architectureChanged: options.architectureChanged,
     model: options.analysis?.model,
+    modelRoute: options.analysis?.modelRoute,
     inputTokens: options.analysis?.usage?.inputTokens,
-    outputTokens: options.analysis?.usage?.outputTokens
+    outputTokens: options.analysis?.usage?.outputTokens,
+    totalTokens: options.analysis?.usage?.totalTokens,
+    cachedInputTokens: options.analysis?.usage?.cachedInputTokens,
+    reasoningTokens: options.analysis?.usage?.reasoningTokens,
+    modelCalls: options.analysis?.usage?.modelCalls
   };
   if (existing >= 0) register.runs[existing] = run;
   else register.runs.push(run);

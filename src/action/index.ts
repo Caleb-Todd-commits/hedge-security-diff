@@ -15,6 +15,7 @@ import {
 } from "../register/store.js";
 import {
   VerificationEvidenceSchema,
+  type AnalysisResult,
   type HedgeConfig,
   type HedgeContext,
   type RiskFinding,
@@ -105,6 +106,7 @@ async function main(): Promise<void> {
     core.setOutput("coverage-status", reason.bundle.analysis.coverage?.status ?? "unsupported");
     core.setOutput("analysis-status", reason.bundle.analysis.analysisHealth?.status ?? "failed");
     core.setOutput("confirmed-no-delta", String(reason.bundle.analysis.confirmedNoDelta === true));
+    setModelOutputs(reason.bundle.analysis);
     core.setOutput("reason-bundle-path", stagePaths.reasonPath);
     core.setOutput("run-manifest-path", reason.manifestPath);
     return;
@@ -143,6 +145,7 @@ async function main(): Promise<void> {
     core.setOutput("coverage-status", published.analysis.coverage?.status ?? "unsupported");
     core.setOutput("analysis-status", published.analysis.analysisHealth?.status ?? "failed");
     core.setOutput("confirmed-no-delta", String(published.analysis.confirmedNoDelta === true));
+    setModelOutputs(published.analysis);
     core.setOutput("run-manifest-path", published.manifestPath);
     emitFindingAnnotations(published.analysis.findings.filter(isUnresolvedRisk));
     if (!dryRun && published.decision === "block") {
@@ -349,6 +352,7 @@ async function main(): Promise<void> {
     core.setOutput("coverage-status", result.analysis.coverage?.status ?? "unsupported");
     core.setOutput("analysis-status", result.analysis.analysisHealth?.status ?? "failed");
     core.setOutput("confirmed-no-delta", String(result.analysis.confirmedNoDelta === true));
+    setModelOutputs(result.analysis);
     core.setOutput("collection-path", stagePaths.collectionPath);
     core.setOutput("collection-manifest-path", stagePaths.collectionManifestPath);
     core.setOutput("run-manifest-path", collection.manifestPath);
@@ -372,6 +376,7 @@ async function main(): Promise<void> {
   core.setOutput("coverage-status", result.analysis.coverage?.status ?? "unsupported");
   core.setOutput("analysis-status", result.analysis.analysisHealth?.status ?? "failed");
   core.setOutput("confirmed-no-delta", String(result.analysis.confirmedNoDelta === true));
+  setModelOutputs(result.analysis);
 
   await core.summary
     .addHeading("Hedge security diff")
@@ -395,7 +400,10 @@ async function main(): Promise<void> {
             .length ?? 0
         )
       ],
-      ["Analysis model", result.analysis.model ?? "none"]
+      ["Analysis model", result.analysis.model ?? "none"],
+      ["Model route", result.analysis.modelRoute ?? "none"],
+      ["Model calls", String(result.analysis.usage?.modelCalls ?? 0)],
+      ["Total tokens", String(result.analysis.usage?.totalTokens ?? 0)]
     ])
     .addRaw(
       `
@@ -417,6 +425,14 @@ Artifacts: \`${result.reportPath}\`, \`${result.htmlReportPath}\`, \`${result.sa
       `Hedge decision: BLOCK. ${openFindings.length} unresolved risk(s) meet the configured ${config.fail_on} threshold.`
     );
   }
+}
+
+function setModelOutputs(analysis: AnalysisResult): void {
+  core.setOutput("model-route", analysis.modelRoute ?? "none");
+  core.setOutput("model-calls", String(analysis.usage?.modelCalls ?? 0));
+  core.setOutput("input-tokens", String(analysis.usage?.inputTokens ?? 0));
+  core.setOutput("output-tokens", String(analysis.usage?.outputTokens ?? 0));
+  core.setOutput("total-tokens", String(analysis.usage?.totalTokens ?? 0));
 }
 
 function emitFindingAnnotations(findings: RiskFinding[]): void {

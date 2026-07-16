@@ -6,7 +6,12 @@ import type {
   RiskFinding
 } from "../domain/schemas.js";
 import { analyzeWithHeuristics } from "./heuristics.js";
-import { ModelRouter, type ModelRunResult, type TriageRunResult } from "../model/client.js";
+import {
+  ModelRouter,
+  type ModelRunResult,
+  type ModelUsage,
+  type TriageRunResult
+} from "../model/client.js";
 import { containsInstructionLikeContent } from "../security/untrusted.js";
 import { analyzeWithCustomPolicies } from "./policies.js";
 import { analyzeSecurityInvariants } from "./invariants.js";
@@ -66,6 +71,10 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
     invariantAnalysis.findings
   );
   const instructionLike = containsInstructionLikeContent(options.patch);
+  const forcedDeepAnalysis = requiresDeepAnalysisDeterministically(
+    options.delta,
+    deterministicFindings
+  );
 
   if (!options.apiKey && !options.recordedModel) {
     return finalizeAnalysis(
@@ -83,7 +92,8 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
           ]
         },
         limitations: ["GPT-5.6 architectural interpretation was not run."],
-        model: "deterministic-only"
+        model: "deterministic-only",
+        modelRoute: "deterministic"
       },
       options,
       invariantAnalysis.evaluations
@@ -98,47 +108,73 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
       })
     : undefined;
 
-  let triageRun;
-  try {
-    triageRun =
-      options.recordedModel?.triage ??
-      (router ? await router.triage(options.delta, options.patch) : undefined);
-    if (!triageRun) throw new Error("No live or recorded triage result was available.");
-  } catch (error) {
-    return finalizeAnalysis(
-      deterministicFallback(
-        deterministicFindings,
-        instructionLike,
-        `GPT-5.6 triage failed; deterministic findings were preserved: ${safeError(error)}`
-      ),
-      options,
-      invariantAnalysis.evaluations
-    );
-  }
-  const triage = triageRun.result;
-  const forcedDeepAnalysis = requiresDeepAnalysisDeterministically(
-    options.delta,
-    deterministicFindings
-  );
-  if (!triage.deepAnalysisRequired && !forcedDeepAnalysis) {
+  // The deterministic result already contains an evidence-linked recommendation.
+  // Spending on model triage cannot change its trusted decision, so reserve model
+  // calls for ambiguous or deterministically sensitive architecture changes.
+  if (deterministicFindings.length > 0 && !forcedDeepAnalysis) {
     return finalizeAnalysis(
       {
-        summary:
-          "A security architecture delta was detected, but deterministic rules did not surface a concrete risk and deep model analysis was not required.",
+        summary: `Hedge surfaced ${deterministicFindings.length} evidence-linked risk(s) using deterministic analysis; model reasoning was not needed.`,
         surfaceChanged: true,
         findings: deterministicFindings,
         integrity: {
           untrustedInstructionsObserved: instructionLike,
           analysisBoundaryHeld: true,
-          notes: ["Luna triage did not request deep analysis."]
+          notes: [
+            "Model reasoning was skipped because deterministic evidence already supported the recommendation."
+          ]
         },
         limitations: [],
-        model: triageRun.model,
-        usage: triageRun.usage
+        model: "deterministic-only",
+        modelRoute: "deterministic"
       },
       options,
       invariantAnalysis.evaluations
     );
+  }
+
+  let triageRun: TriageRunResult | undefined;
+  if (!forcedDeepAnalysis) {
+    try {
+      triageRun =
+        options.recordedModel?.triage ??
+        (router ? await router.triage(options.delta, options.patch) : undefined);
+      if (!triageRun) throw new Error("No live or recorded triage result was available.");
+    } catch (error) {
+      return finalizeAnalysis(
+        {
+          ...deterministicFallback(
+            deterministicFindings,
+            instructionLike,
+            `GPT-5.6 triage failed; deterministic findings were preserved: ${safeError(error)}`
+          ),
+          modelRoute: "fallback"
+        },
+        options,
+        invariantAnalysis.evaluations
+      );
+    }
+    if (!triageRun.result.deepAnalysisRequired) {
+      return finalizeAnalysis(
+        {
+          summary:
+            "A security architecture delta was detected, but deterministic rules did not surface a concrete risk and deep model analysis was not required.",
+          surfaceChanged: true,
+          findings: deterministicFindings,
+          integrity: {
+            untrustedInstructionsObserved: instructionLike,
+            analysisBoundaryHeld: true,
+            notes: ["Luna triage did not request deep analysis."]
+          },
+          limitations: [],
+          model: triageRun.model,
+          modelRoute: "triage",
+          usage: triageRun.usage
+        },
+        options,
+        invariantAnalysis.evaluations
+      );
+    }
   }
 
   let modelResult;
@@ -151,10 +187,15 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
     const fallback = deterministicFallback(
       deterministicFindings,
       instructionLike,
-      `GPT-5.6 deep analysis failed after triage; deterministic findings were preserved: ${safeError(error)}`
+      `GPT-5.6 deep analysis failed${triageRun ? " after triage" : ""}; deterministic findings were preserved: ${safeError(error)}`
     );
     return finalizeAnalysis(
-      { ...fallback, usage: triageRun.usage, model: `${triageRun.model} → fallback` },
+      {
+        ...fallback,
+        usage: triageRun?.usage,
+        model: triageRun ? `${triageRun.model} → fallback` : "deterministic-fallback",
+        modelRoute: "fallback"
+      },
       options,
       invariantAnalysis.evaluations
     );
@@ -172,9 +213,9 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
         analysisBoundaryHeld: modelResult.integrity.analysisBoundaryHeld,
         notes: [
           "Model output passed schema, instruction-boundary, and exact evidence-reference validation; free-form model summary text was not published.",
-          ...(forcedDeepAnalysis && !triage.deepAnalysisRequired
+          ...(forcedDeepAnalysis
             ? [
-                "Deep analysis was enforced by deterministic graph-delta policy despite the triage result."
+                "Deep analysis was selected directly by deterministic graph-delta policy; the redundant triage call was skipped."
               ]
             : [])
         ]
@@ -186,7 +227,8 @@ export async function runAnalysis(options: RunAnalysisOptions): Promise<Analysis
             ]
           : [],
       model: modelResult.model,
-      usage: sumUsage(triageRun.usage, modelResult.usage)
+      modelRoute: triageRun ? "triage-analysis" : "analysis",
+      usage: triageRun ? sumUsage(triageRun.usage, modelResult.usage) : modelResult.usage
     },
     options,
     invariantAnalysis.evaluations
@@ -230,35 +272,66 @@ export function requiresDeepAnalysisDeterministically(
   delta: GraphDelta,
   deterministicFindings: RiskFinding[] = []
 ): boolean {
-  if (deterministicFindings.length > 0) return true;
-  const importantKinds = new Set([
-    "entrypoint",
-    "auth-control",
-    "authorization-control",
-    "database",
-    "data-model",
-    "storage",
-    "external-service",
-    "secret",
-    "component"
-  ]);
-  if (delta.addedNodes.some((node) => importantKinds.has(node.kind))) return true;
-  if (delta.removedNodes.some((node) => importantKinds.has(node.kind))) return true;
-  if (delta.changedNodes.some((pair) => importantKinds.has(pair.after.kind))) return true;
-  const importantEdges = new Set([
-    "calls",
-    "reads",
-    "writes",
+  if (deterministicFindings.some((finding) => severityRank(finding.severity) >= 3)) return true;
+
+  const sensitiveKinds = new Set(["auth-control", "authorization-control", "secret"]);
+  const sensitiveNode = (node: GraphDelta["addedNodes"][number]): boolean =>
+    sensitiveKinds.has(node.kind) ||
+    node.trustZone === "privileged" ||
+    (node.kind === "entrypoint" && node.trustZone === "public");
+  if (delta.addedNodes.some(sensitiveNode)) return true;
+  if (
+    delta.removedNodes.some(
+      (node) => sensitiveKinds.has(node.kind) || node.trustZone === "privileged"
+    )
+  )
+    return true;
+  if (
+    delta.changedNodes.some(
+      ({ before, after }) =>
+        sensitiveNode(before) || sensitiveNode(after) || confirmedControlWasRemoved(before, after)
+    )
+  )
+    return true;
+
+  const sensitiveFlowKinds = new Set(["crosses-trust-boundary", "uses-secret"]);
+  const sensitiveControlKinds = new Set([
     "authenticates",
     "authorizes",
     "crosses-trust-boundary",
     "uses-secret"
   ]);
   return (
-    delta.addedEdges.some((edge) => importantEdges.has(edge.kind)) ||
-    delta.removedEdges.some((edge) => importantEdges.has(edge.kind)) ||
-    delta.changedEdges.some((pair) => importantEdges.has(pair.after.kind))
+    delta.addedEdges.some((edge) => sensitiveFlowKinds.has(edge.kind)) ||
+    delta.removedEdges.some((edge) => sensitiveControlKinds.has(edge.kind)) ||
+    delta.changedEdges.some(
+      ({ before, after }) =>
+        sensitiveControlKinds.has(before.kind) ||
+        sensitiveControlKinds.has(after.kind) ||
+        confirmedControlWasRemoved(before, after)
+    )
   );
+}
+
+function confirmedControlWasRemoved(
+  before: GraphDelta["addedNodes"][number] | GraphDelta["addedEdges"][number],
+  after: GraphDelta["addedNodes"][number] | GraphDelta["addedEdges"][number]
+): boolean {
+  const trustedBefore = new Set(
+    before.controls
+      .filter((control) => control.assurance === "trusted" || control.assurance === "confirmed")
+      .map((control) => control.type)
+  );
+  const trustedAfter = new Set(
+    after.controls
+      .filter((control) => control.assurance === "trusted" || control.assurance === "confirmed")
+      .map((control) => control.type)
+  );
+  return [...trustedBefore].some((control) => !trustedAfter.has(control));
+}
+
+function severityRank(severity: RiskFinding["severity"]): number {
+  return { info: 0, low: 1, medium: 2, high: 3, critical: 4 }[severity];
 }
 
 function mergeByFingerprint(primary: RiskFinding[], secondary: RiskFinding[]): RiskFinding[] {
@@ -271,15 +344,25 @@ function mergeByFingerprint(primary: RiskFinding[], secondary: RiskFinding[]): R
   return [...merged.values()];
 }
 
-function sumUsage(
-  first?: { inputTokens?: number; outputTokens?: number },
-  second?: { inputTokens?: number; outputTokens?: number }
-): { inputTokens?: number; outputTokens?: number } | undefined {
+function sumUsage(first?: ModelUsage, second?: ModelUsage): ModelUsage | undefined {
   if (!first && !second) return undefined;
   return {
-    inputTokens: (first?.inputTokens ?? 0) + (second?.inputTokens ?? 0),
-    outputTokens: (first?.outputTokens ?? 0) + (second?.outputTokens ?? 0)
+    ...sumUsageMetric("inputTokens", first, second),
+    ...sumUsageMetric("outputTokens", first, second),
+    ...sumUsageMetric("totalTokens", first, second),
+    ...sumUsageMetric("cachedInputTokens", first, second),
+    ...sumUsageMetric("reasoningTokens", first, second),
+    ...sumUsageMetric("modelCalls", first, second)
   };
+}
+
+function sumUsageMetric(
+  key: keyof ModelUsage,
+  first?: ModelUsage,
+  second?: ModelUsage
+): Partial<ModelUsage> {
+  if (first?.[key] === undefined && second?.[key] === undefined) return {};
+  return { [key]: (first?.[key] ?? 0) + (second?.[key] ?? 0) };
 }
 
 function deterministicFallback(

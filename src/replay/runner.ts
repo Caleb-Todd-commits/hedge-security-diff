@@ -17,6 +17,15 @@ import { loadConfig } from "../config/load.js";
 import { TriageResultSchema } from "../model/schemas.js";
 import type { ModelRunResult, TriageRunResult } from "../model/client.js";
 
+const ModelUsageSchema = z.object({
+  inputTokens: z.number().int().nonnegative().optional(),
+  outputTokens: z.number().int().nonnegative().optional(),
+  totalTokens: z.number().int().nonnegative().optional(),
+  cachedInputTokens: z.number().int().nonnegative().optional(),
+  reasoningTokens: z.number().int().nonnegative().optional(),
+  modelCalls: z.number().int().nonnegative().optional()
+});
+
 const ReplayManifestSchema = z.object({
   schemaVersion: z.literal("0.1"),
   name: z.string().min(1),
@@ -38,9 +47,7 @@ const ReplayManifestSchema = z.object({
 const TriageRunSchema = z.object({
   result: TriageResultSchema,
   model: z.string(),
-  usage: z
-    .object({ inputTokens: z.number().optional(), outputTokens: z.number().optional() })
-    .optional()
+  usage: ModelUsageSchema.optional()
 });
 
 const ModelRunSchema = z.object({
@@ -53,9 +60,7 @@ const ModelRunSchema = z.object({
     analysisBoundaryHeld: z.boolean(),
     notes: z.array(z.string())
   }),
-  usage: z
-    .object({ inputTokens: z.number().optional(), outputTokens: z.number().optional() })
-    .optional()
+  usage: ModelUsageSchema.optional()
 });
 
 export interface ReplayResult {

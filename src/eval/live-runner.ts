@@ -22,7 +22,12 @@ import {
   type RiskFinding
 } from "../domain/schemas.js";
 import { diffGraphs, hasSecurityArchitectureDelta } from "../graph/diff.js";
-import { ModelRouter, type ModelRunResult, type TriageRunResult } from "../model/client.js";
+import {
+  ModelRouter,
+  type ModelRunResult,
+  type ModelUsage,
+  type TriageRunResult
+} from "../model/client.js";
 import {
   EXTRACTOR_VERSION,
   PIPELINE_SCHEMA_VERSION,
@@ -34,7 +39,7 @@ import { stableHash, stableStringify } from "../utils/hash.js";
 import { HEDGE_VERSION } from "../version.js";
 
 export const LIVE_EVAL_SCHEMA_VERSION = "hedge-live-eval-v0.2";
-export const MODEL_OUTPUT_SCHEMA_VERSION = "hedge-model-output-v0.1";
+export const MODEL_OUTPUT_SCHEMA_VERSION = "hedge-model-output-v0.2";
 export const DEFAULT_LIVE_EVAL_REPEATS = 3;
 export const MAX_LIVE_EVAL_REPEATS = 5;
 export const MAX_LIVE_PATCH_BYTES = 60_000;
@@ -129,7 +134,7 @@ export interface ModelRoutingRecord {
   triageRequestedDeepAnalysis: boolean | null;
   deterministicDeepAnalysisRequired: boolean;
   analysisCalled: boolean;
-  path: "no-model" | "luna-only" | "luna-to-sol" | "failed";
+  path: "no-model" | "deterministic" | "luna-only" | "luna-to-sol" | "sol-direct" | "failed";
 }
 
 export interface ExactEvidenceRecord {
@@ -143,6 +148,10 @@ export interface ExactEvidenceRecord {
 export interface UsageRecord {
   inputTokens: number | null;
   outputTokens: number | null;
+  totalTokens: number | null;
+  cachedInputTokens: number | null;
+  reasoningTokens: number | null;
+  modelCalls: number;
   triageInputTokens: number | null;
   triageOutputTokens: number | null;
   analysisInputTokens: number | null;
@@ -255,8 +264,12 @@ export interface LiveEvalSummary {
     exactEvidenceValidityRate: number;
     rejectedModelProposals: number;
     routes: Record<string, number>;
+    modelCalls: number;
     inputTokens: DistributionRecord;
     outputTokens: DistributionRecord;
+    totalTokens: DistributionRecord;
+    cachedInputTokens: DistributionRecord;
+    reasoningTokens: DistributionRecord;
     latencyMs: DistributionRecord;
     stableFindingCases: number;
     stableRecordedDecisionCases: number;
@@ -355,30 +368,63 @@ export function createOpenAiLiveModelRunner(apiKey: string): LiveModelRunner {
         request.delta,
         deterministic.findings
       );
-      let triage: TriageRunResult;
-      const triageStarted = performance.now();
-      try {
-        triage = await router.triage(request.delta, request.patch);
-      } catch (error) {
-        const triageMs = elapsed(triageStarted);
-        throw new LiveEvalExecutionError(
-          safeLiveEvalError(error, [apiKey]),
-          "triage",
-          false,
-          routingRecord(request.config, true, null, deterministicDeepAnalysisRequired, false),
-          emptyUsage(),
-          { totalMs: triageMs, triageMs, analysisMs: null }
-        );
+      if (deterministic.findings.length > 0 && !deterministicDeepAnalysisRequired) {
+        const analysis = await runAnalysis({
+          graph: request.graph,
+          delta: request.delta,
+          patch: request.patch,
+          config: request.config,
+          recordedModel: {},
+          coverage: request.coverage
+        });
+        return {
+          analysis,
+          routing: routingRecord(request.config, false, null, false, false, "deterministic"),
+          exactEvidence: validateExactModelEvidence(
+            undefined,
+            request.graph,
+            request.delta,
+            request.headSha
+          ),
+          usage: emptyUsage(0),
+          latency: { totalMs: 0, triageMs: null, analysisMs: null },
+          boundary: {
+            instructionLikeContentObserved: containsInstructionLikeContent(request.patch),
+            analysisBoundaryHeld: null,
+            status: "not-exercised-no-model"
+          }
+        };
       }
 
-      const triageMs = elapsed(triageStarted);
-      const shouldAnalyze = triage.result.deepAnalysisRequired || deterministicDeepAnalysisRequired;
+      let triage: TriageRunResult | undefined;
+      let triageMs: number | null = null;
+      if (!deterministicDeepAnalysisRequired) {
+        const triageStarted = performance.now();
+        try {
+          triage = await router.triage(request.delta, request.patch);
+        } catch (error) {
+          triageMs = elapsed(triageStarted);
+          throw new LiveEvalExecutionError(
+            safeLiveEvalError(error, [apiKey]),
+            "triage",
+            false,
+            routingRecord(request.config, true, null, false, false, "failed"),
+            emptyUsage(),
+            { totalMs: triageMs, triageMs, analysisMs: null }
+          );
+        }
+        triageMs = elapsed(triageStarted);
+      }
+
+      const shouldAnalyze =
+        deterministicDeepAnalysisRequired || Boolean(triage?.result.deepAnalysisRequired);
       let analysisRun: ModelRunResult | undefined;
       let analysisMs: number | null = null;
       if (shouldAnalyze) {
         const analysisStarted = performance.now();
         try {
           analysisRun = await router.analyze(request.graph, request.delta, request.patch);
+          analysisMs = elapsed(analysisStarted);
         } catch (error) {
           analysisMs = elapsed(analysisStarted);
           const boundaryFailure = /instruction boundary did not hold/i.test(
@@ -390,13 +436,14 @@ export function createOpenAiLiveModelRunner(apiKey: string): LiveModelRunner {
             boundaryFailure,
             routingRecord(
               request.config,
-              true,
-              triage.result.deepAnalysisRequired,
+              Boolean(triage),
+              triage?.result.deepAnalysisRequired ?? null,
               deterministicDeepAnalysisRequired,
-              true
+              true,
+              "failed"
             ),
-            usageRecord(triage.usage),
-            { totalMs: triageMs + analysisMs, triageMs, analysisMs }
+            usageRecord(triage?.usage),
+            { totalMs: (triageMs ?? 0) + analysisMs, triageMs, analysisMs }
           );
         }
       }
@@ -406,7 +453,10 @@ export function createOpenAiLiveModelRunner(apiKey: string): LiveModelRunner {
         delta: request.delta,
         patch: request.patch,
         config: request.config,
-        recordedModel: { triage, analysis: analysisRun },
+        recordedModel: {
+          ...(triage ? { triage } : {}),
+          ...(analysisRun ? { analysis: analysisRun } : {})
+        },
         coverage: request.coverage
       });
       const exactEvidence = validateExactModelEvidence(
@@ -435,13 +485,13 @@ export function createOpenAiLiveModelRunner(apiKey: string): LiveModelRunner {
           false,
           routingRecord(
             request.config,
-            true,
-            triage.result.deepAnalysisRequired,
+            Boolean(triage),
+            triage?.result.deepAnalysisRequired ?? null,
             deterministicDeepAnalysisRequired,
             Boolean(analysisRun)
           ),
-          usageRecord(triage.usage, analysisRun?.usage),
-          { totalMs: triageMs + (analysisMs ?? 0), triageMs, analysisMs }
+          usageRecord(triage?.usage, analysisRun?.usage),
+          { totalMs: (triageMs ?? 0) + (analysisMs ?? 0), triageMs, analysisMs }
         );
       }
       if (boundary.status === "failed") {
@@ -451,27 +501,27 @@ export function createOpenAiLiveModelRunner(apiKey: string): LiveModelRunner {
           true,
           routingRecord(
             request.config,
-            true,
-            triage.result.deepAnalysisRequired,
+            Boolean(triage),
+            triage?.result.deepAnalysisRequired ?? null,
             deterministicDeepAnalysisRequired,
             Boolean(analysisRun)
           ),
-          usageRecord(triage.usage, analysisRun?.usage),
-          { totalMs: triageMs + (analysisMs ?? 0), triageMs, analysisMs }
+          usageRecord(triage?.usage, analysisRun?.usage),
+          { totalMs: (triageMs ?? 0) + (analysisMs ?? 0), triageMs, analysisMs }
         );
       }
       return {
         analysis,
         routing: routingRecord(
           request.config,
-          true,
-          triage.result.deepAnalysisRequired,
+          Boolean(triage),
+          triage?.result.deepAnalysisRequired ?? null,
           deterministicDeepAnalysisRequired,
           Boolean(analysisRun)
         ),
         exactEvidence,
-        usage: usageRecord(triage.usage, analysisRun?.usage),
-        latency: { totalMs: triageMs + (analysisMs ?? 0), triageMs, analysisMs },
+        usage: usageRecord(triage?.usage, analysisRun?.usage),
+        latency: { totalMs: (triageMs ?? 0) + (analysisMs ?? 0), triageMs, analysisMs },
         boundary
       };
     }
@@ -590,8 +640,12 @@ export function renderLiveEvalSummary(summary: LiveEvalSummary): string {
     `- API or model failures: ${summary.aggregate.apiOrModelFailures}`,
     `- Exact-evidence validity: ${(summary.aggregate.exactEvidenceValidityRate * 100).toFixed(1)}%`,
     `- Rejected model proposals: ${summary.aggregate.rejectedModelProposals}`,
+    `- Model calls: ${summary.aggregate.modelCalls}`,
     `- Input tokens (model calls): ${formatDistribution(summary.aggregate.inputTokens)}`,
     `- Output tokens (model calls): ${formatDistribution(summary.aggregate.outputTokens)}`,
+    `- Total tokens (model calls): ${formatDistribution(summary.aggregate.totalTokens)}`,
+    `- Cached input tokens (model calls): ${formatDistribution(summary.aggregate.cachedInputTokens)}`,
+    `- Reasoning tokens (model calls): ${formatDistribution(summary.aggregate.reasoningTokens)}`,
     `- Latency ms (model calls): ${formatDistribution(summary.aggregate.latencyMs)}`,
     "",
     "| Case | Category | Delta | Routes | Failures | Exact evidence | Findings | Decisions | Injection boundary |",
@@ -900,7 +954,9 @@ function summarizeLiveEval(
   abortedAfterBoundaryFailure: boolean
 ): LiveEvalSummary {
   const runs = cases.flatMap((item) => item.runs);
-  const modelRuns = runs.filter((run) => run.routing.path !== "no-model");
+  const modelRuns = runs.filter(
+    (run) => run.routing.path !== "no-model" && run.routing.path !== "deterministic"
+  );
   const exactEvidenceRuns = runs.filter((run) => run.status !== "failed");
   const failedRuns = runs.filter((run) => run.status === "failed");
   const boundaryFailures = runs.filter((run) => run.boundary.status === "failed").length;
@@ -949,12 +1005,26 @@ function summarizeLiveEval(
         0
       ),
       routes: countValues(runs.map((run) => run.routing.path)),
+      modelCalls: runs.reduce((total, run) => total + run.usage.modelCalls, 0),
       inputTokens: distribution(
         modelRuns.flatMap((run) => (run.usage.inputTokens === null ? [] : [run.usage.inputTokens]))
       ),
       outputTokens: distribution(
         modelRuns.flatMap((run) =>
           run.usage.outputTokens === null ? [] : [run.usage.outputTokens]
+        )
+      ),
+      totalTokens: distribution(
+        modelRuns.flatMap((run) => (run.usage.totalTokens === null ? [] : [run.usage.totalTokens]))
+      ),
+      cachedInputTokens: distribution(
+        modelRuns.flatMap((run) =>
+          run.usage.cachedInputTokens === null ? [] : [run.usage.cachedInputTokens]
+        )
+      ),
+      reasoningTokens: distribution(
+        modelRuns.flatMap((run) =>
+          run.usage.reasoningTokens === null ? [] : [run.usage.reasoningTokens]
         )
       ),
       latencyMs: distribution(modelRuns.map((run) => run.latency.totalMs)),
@@ -1209,23 +1279,26 @@ function routingRecord(
     triageRequestedDeepAnalysis,
     deterministicDeepAnalysisRequired,
     analysisCalled,
-    path: forcedPath ?? (!triageCalled ? "no-model" : analysisCalled ? "luna-to-sol" : "luna-only")
+    path:
+      forcedPath ??
+      (!triageCalled
+        ? analysisCalled
+          ? "sol-direct"
+          : "no-model"
+        : analysisCalled
+          ? "luna-to-sol"
+          : "luna-only")
   };
 }
 
-function usageRecord(
-  triage?: { inputTokens?: number; outputTokens?: number },
-  analysis?: { inputTokens?: number; outputTokens?: number }
-): UsageRecord {
-  const input = [triage?.inputTokens, analysis?.inputTokens].filter(
-    (value): value is number => value !== undefined
-  );
-  const output = [triage?.outputTokens, analysis?.outputTokens].filter(
-    (value): value is number => value !== undefined
-  );
+function usageRecord(triage?: ModelUsage, analysis?: ModelUsage): UsageRecord {
   return {
-    inputTokens: input.length ? input.reduce((total, value) => total + value, 0) : null,
-    outputTokens: output.length ? output.reduce((total, value) => total + value, 0) : null,
+    inputTokens: sumUsageMetric("inputTokens", triage, analysis),
+    outputTokens: sumUsageMetric("outputTokens", triage, analysis),
+    totalTokens: sumUsageMetric("totalTokens", triage, analysis),
+    cachedInputTokens: sumUsageMetric("cachedInputTokens", triage, analysis),
+    reasoningTokens: sumUsageMetric("reasoningTokens", triage, analysis),
+    modelCalls: sumUsageMetric("modelCalls", triage, analysis) ?? 0,
     triageInputTokens: triage?.inputTokens ?? null,
     triageOutputTokens: triage?.outputTokens ?? null,
     analysisInputTokens: analysis?.inputTokens ?? null,
@@ -1237,11 +1310,24 @@ function emptyUsage(zero: 0 | undefined = undefined): UsageRecord {
   return {
     inputTokens: zero ?? null,
     outputTokens: zero ?? null,
+    totalTokens: zero ?? null,
+    cachedInputTokens: zero ?? null,
+    reasoningTokens: zero ?? null,
+    modelCalls: 0,
     triageInputTokens: zero ?? null,
     triageOutputTokens: zero ?? null,
     analysisInputTokens: zero ?? null,
     analysisOutputTokens: zero ?? null
   };
+}
+
+function sumUsageMetric(
+  key: keyof ModelUsage,
+  triage?: ModelUsage,
+  analysis?: ModelUsage
+): number | null {
+  if (triage?.[key] === undefined && analysis?.[key] === undefined) return null;
+  return (triage?.[key] ?? 0) + (analysis?.[key] ?? 0);
 }
 
 function stabilityFor(signatures: Array<string | null>, repeats: number): StabilityRecord {

@@ -65,12 +65,18 @@ Model-origin findings remain reviewable inferences but cannot directly create a 
 
 ## 9. GPT-5.6 router
 
-- Luna performs inexpensive scope triage.
-- Sol receives only the bounded graph delta, reviewed assumptions/unknowns, evidence index, and patch data.
+- Confirmed no-delta uses zero model calls.
+- A delta already covered by a low/medium deterministic recommendation uses zero model calls; coverage and health are still reported independently and are never upgraded by this shortcut.
+- A deterministically sensitive or high/critical delta routes directly to Sol in one call; Luna cannot veto it.
+- An otherwise ambiguous delta uses Luna and invokes Sol only when triage requests deep analysis, for a maximum of two calls.
+- Luna is capped at 384 output tokens with minimal reasoning. Sol is capped at 4,096 output tokens with low reasoning. These limits include visible and reasoning output; they do not cap total request tokens.
+- Automatic model retries are disabled so one logical route cannot silently multiply requests.
+- Luna receives a minified delta and at most 12 KiB of UTF-8-safe patch data; its complete serialized request must fit within 48 KiB. Sol receives the minified graph delta, bounded reviewed assumptions/unknowns, exact evidence index, and at most 48 KiB of patch data; its complete serialized request must fit within 160 KiB. An oversized request fails locally into the deterministic fallback before any model request.
 - Repository content is wrapped as untrusted data.
 - Responses must satisfy strict schemas.
 - Evidence references are resolved against the deterministic index. A model proposal with no valid evidence is omitted.
-- Reported usage combines triage and deep-analysis tokens.
+- Reported usage combines provider-returned input, output, cached-input, reasoning, and total tokens across triage and deep analysis. Hedge does not guess dollar cost.
+- Hedge leaves provider-default implicit prompt caching available but does not issue explicit cache writes. Explicit caching is deferred until repeated stable-prefix reuse is measured because a low-reuse write policy can increase cost.
 
 ## 10. Register and report
 

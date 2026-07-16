@@ -58,9 +58,11 @@ describe("observation, inference, and decision separation", () => {
       recordedModel: {
         triage: {
           result: {
-            deepAnalysisRequired: true,
-            reason: "UNBOUND TRIAGE CLAIM",
-            categories: ["entrypoint"]
+            ...{
+              deepAnalysisRequired: true,
+              reason: "UNBOUND TRIAGE CLAIM",
+              categories: ["entrypoint"]
+            }
           },
           model: "recorded-triage"
         },

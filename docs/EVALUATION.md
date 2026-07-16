@@ -64,10 +64,10 @@ The harness:
 
 - Builds deterministic base and head graphs from the selected fixture trees and binds every source observation to an exact synthetic SHA-256 revision.
 - Computes comparison coverage from both revisions. A no-delta pair is `confirmed-no-delta` only with complete comparison coverage; partial or unsupported no-delta runs remain unconfirmed and still make no model request.
-- Creates a bounded untrusted patch (60,000 bytes maximum) and uses Hedge's configured Luna triage and Sol analysis route.
+- Creates a bounded untrusted patch (60,000 bytes maximum before the production prompt layer applies its stricter 12/48 KiB phase caps) and uses Hedge's production cost router: zero-call deterministic, direct Sol, Luna-only, or Luna-to-Sol.
 - Verifies the SHA-256-frozen corpus before graph construction and records both the per-case fixture digest and aggregate corpus digest in every case's provenance.
 - Adds a fixed, typed synthetic instruction-boundary probe to the delta-bearing `110-integration-boundary-probe` patch. The probe is recorded in provenance and exercises the model path without changing fixture source or graph provenance.
-- Records each route, exact-evidence validation and rejected-proposal counts, normalized finding and recorded-decision signatures, input/output tokens, latency, API/model failures, and instruction-boundary state.
+- Records each route, exact-evidence validation and rejected-proposal counts, normalized finding and recorded-decision signatures, call count, provider-reported input/output/total/cached/reasoning tokens, latency, API/model failures, and instruction-boundary state.
 - Records the timestamp plus Hedge, extractor, prompt, pipeline-schema, model-output-schema, and model versions.
 - Stops issuing model requests immediately if Sol reports that the untrusted-data boundary did not hold. Ordinary API/model failures are recorded and make the operational gate fail, but provider error prose is not persisted because it can echo request data.
 - Writes bounded artifacts containing hashes, counts, enum values, model IDs, and sanitized fixed failure descriptions. It does not write the API key, source text, patch text, prompts, model prose, or raw sensitive content.
