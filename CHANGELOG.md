@@ -6,8 +6,9 @@
 - Added conservative control assurance, deterministic invariant `unknown` behavior, and non-blocking model-only findings.
 - Added RunManifest-bound `collect`, `reason`, and `publish` jobs so model credentials and GitHub write authority never share a job.
 - Hardened draft remediation and four-condition counterfactual verification with immutable witness and architecture-delta evidence.
+- Moved secret-bearing PR orchestration to the trusted base workflow, pinned every third-party Action and verification container, normalized repair concurrency, and required protected-default-branch state.
 - Added bounded, commit-linked PR reports and CWD-independent workflow installation.
-- Expanded the automated suite to 226 tests while retaining 45/45 deterministic evaluation cases.
+- Expanded the automated suite to 230 tests while retaining 45/45 deterministic evaluation cases.
 
 ## 0.5.1 — public, installable Build Week release
 

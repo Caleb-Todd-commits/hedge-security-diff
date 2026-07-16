@@ -40,6 +40,7 @@ An instruction-like string is not automatically an application vulnerability. He
 Hackathon controls:
 
 - Same-repository PRs only.
+- Trusted-base `pull_request_target` orchestration, with an explicit same-repository guard on every job and exact event base/head SHA bindings. Pull-request changes cannot replace the running workflow definition or pinned Hedge Action.
 - Base configuration, context, and state fetched through the GitHub API.
 - Published/pinned Hedge Action in the consumer workflow—not Action code from the PR.
 - The secret-bearing analysis job does not build or execute target code.
@@ -57,7 +58,7 @@ Production controls:
 - Prefer OpenAI workload identity federation when available.
 - Pin third-party actions to reviewed immutable commit SHAs.
 - Add environment protection for remediation and publishing.
-- Never use `pull_request_target` to execute untrusted head code.
+- Never use `pull_request_target` to execute untrusted head code; Hedge checks out the exact head only in its secretless collector and parses it as data without repository commands or lifecycle scripts.
 - Bind generated state and remediation payloads to the analyzed commit; consider external signing for production identity/non-repudiation.
 
 ## Model output crossing into execution
@@ -83,6 +84,7 @@ Controls:
 - The same witness must produce `blocked-by-control` on the exact repaired revision; crashes, timeouts, dependency failures, malformed results, and generic nonzero exits are `inconclusive`.
 - Legitimate behavior must still pass.
 - An exact, complete offline graph comparison must show a relevant modeled control or attack path change with commit-bound evidence.
+- Witness and legitimate-behavior jobs use the same workflow-pinned container digest, and their result artifacts are rejected if the runtime binding differs.
 - Revisions, commands, actor, notes, and artifacts are recorded.
 
 ## State poisoning
@@ -93,6 +95,7 @@ Controls:
 - Missing or invalid base state never causes an empty-graph comparison and never falls back to head state. Hedge rebuilds the exact base graph and treats lifecycle state as unavailable.
 - A full-register digest failure discards findings, IDs, acceptance, verification, run history, and graph together.
 - Generated state updates are reviewable.
+- Verification state may be sourced only from GitHub's current protected default branch; its exact commit is revalidated before the write-authorized job opens a state pull request.
 - The graph and complete register are sealed with a versioned digest and written atomically.
 - Legacy graph-only integrity is accepted only as an explicit migration state and upgraded on refresh.
 - Risk acceptance requires actor, time, and reason.

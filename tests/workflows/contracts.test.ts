@@ -1,13 +1,33 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import YAML from "yaml";
 
 describe("example workflow security contracts", () => {
   it("keeps Codex remediation and publishing in separate jobs", async () => {
     const workflow = YAML.parse(await readFile("examples/workflows/hedge-fix.yml", "utf8"));
-    expect(workflow.concurrency.group).toContain("github.event.issue.number");
-    expect(workflow.concurrency.group).toContain("github.event.comment.body");
-    expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
+    expect(workflow.concurrency).toBeUndefined();
+    expect(workflow.jobs.authorize.if).toBe("github.event.issue.pull_request");
+    expect(JSON.stringify(workflow.jobs.authorize)).not.toContain("startsWith");
+    expect(workflow.jobs.authorize.outputs.authorized).toContain("steps.auth.outputs.authorized");
+    expect(workflow.jobs.remediate.if).toContain("needs.authorize.outputs.authorized");
+    expect(workflow.jobs.remediate.concurrency.group).toContain("github.repository");
+    expect(workflow.jobs.remediate.concurrency.group).toContain(
+      "needs.authorize.outputs.pr_number"
+    );
+    expect(workflow.jobs.remediate.concurrency.group).toContain("needs.authorize.outputs.risk_id");
+    expect(workflow.jobs.remediate.concurrency.group).not.toContain("github.event.comment.body");
+    expect(workflow.jobs.remediate.concurrency["cancel-in-progress"]).toBe(false);
+    expect(workflow.jobs["publish-draft"].concurrency.group).toContain("github.repository");
+    expect(workflow.jobs["publish-draft"].concurrency.group).toContain(
+      "needs.authorize.outputs.pr_number"
+    );
+    expect(workflow.jobs["publish-draft"].concurrency.group).toContain(
+      "needs.authorize.outputs.risk_id"
+    );
+    expect(workflow.jobs["publish-draft"].concurrency.group).not.toContain(
+      "github.event.comment.body"
+    );
+    expect(workflow.jobs["publish-draft"].concurrency["cancel-in-progress"]).toBe(false);
     expect(workflow.jobs.remediate.permissions.contents).toBe("read");
     expect(workflow.jobs["validate-patch"].permissions.contents).toBe("read");
     expect(workflow.jobs["publish-draft"].permissions.contents).toBe("write");
@@ -28,6 +48,56 @@ describe("example workflow security contracts", () => {
     expect(text).toContain("--network none");
     expect(text).not.toContain("architecture_control_changed");
   });
+
+  it("binds verification state to the protected default branch and an immutable runtime", async () => {
+    const workflow = YAML.parse(await readFile("examples/workflows/hedge-verify.yml", "utf8"));
+    expect(workflow.env.HEDGE_WITNESS_IMAGE).toBe(
+      "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3"
+    );
+
+    const validateScript = workflow.jobs["validate-inputs"].steps[0].with.script as string;
+    expect(validateScript).toContain("stateRef !== defaultBranch");
+    expect(validateScript).toContain("stateBranch.data.protected !== true");
+    expect(validateScript).toContain("stateBranch.data.commit?.sha");
+
+    const runtimeJob = workflow.jobs["resolve-runtime-image"];
+    expect(runtimeJob.permissions).toEqual({});
+    expect(JSON.stringify(runtimeJob)).toContain("^node:22-bookworm-slim@sha256:[a-f0-9]{64}$");
+    expect(workflow.jobs["witness-counterfactual"].needs).toContain("resolve-runtime-image");
+    expect(workflow.jobs["legitimate-behavior"].needs).toContain("resolve-runtime-image");
+
+    const recordSteps = workflow.jobs["record-state"].steps;
+    const revalidation = recordSteps.find(
+      (step: { name?: string }) =>
+        step.name === "Revalidate the protected default branch and exact state revision"
+    );
+    expect(revalidation.with.script).toContain("repository.data.default_branch");
+    expect(revalidation.with.script).toContain("branch.data.protected !== true");
+    expect(revalidation.with.script).toContain("branch.data.commit?.sha");
+    const checkout = recordSteps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/checkout@")
+    );
+    expect(checkout.uses).toMatch(/^actions\/checkout@[a-f0-9]{40}$/);
+    expect(checkout.with.ref).toBe("${{ needs.validate-inputs.outputs.state_sha }}");
+  });
+
+  it("pins every third-party workflow action to a full commit SHA", async () => {
+    const workflowFiles = (await readdir("examples/workflows"))
+      .filter((name) => name.endsWith(".yml"))
+      .sort();
+
+    for (const file of workflowFiles) {
+      const text = await readFile(`examples/workflows/${file}`, "utf8");
+      for (const match of text.matchAll(/uses:\s*([^\s#]+)/g)) {
+        const reference = match[1];
+        if (reference === "YOUR_ORG/hedge@PINNED_COMMIT_SHA") continue;
+        expect(reference, `${file}: ${reference}`).toMatch(
+          /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?@[a-f0-9]{40}$/
+        );
+      }
+    }
+  });
+
   it("uses trusted base policy while rebuilding exact source graphs when state is absent", async () => {
     const actionSource = await readFile("src/action/index.ts", "utf8");
     const contentSource = await readFile("src/github/content.ts", "utf8");
@@ -48,10 +118,24 @@ describe("example workflow security contracts", () => {
     const publish = JSON.stringify(workflow.jobs.publish);
 
     expect(workflow.concurrency["cancel-in-progress"]).toBe(true);
-    expect(collect).toContain("actions/checkout@v7");
+    expect(workflow.on.pull_request_target.types).toEqual(["opened", "synchronize", "reopened"]);
+    expect(workflow.on.pull_request).toBeUndefined();
+    for (const jobName of ["collect", "reason", "publish"]) {
+      expect(workflow.jobs[jobName].if).toContain(
+        "github.event.pull_request.head.repo.full_name == github.repository"
+      );
+    }
+    expect(collect).toContain("actions/checkout@");
     expect(collect).toContain('"command":"collect"');
     expect(collect).not.toContain("OPENAI_API_KEY");
     expect(workflow.jobs.collect.permissions["pull-requests"]).toBe("read");
+    const collectCheckout = workflow.jobs.collect.steps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/checkout@")
+    );
+    expect(collectCheckout.uses).toMatch(/^actions\/checkout@[a-f0-9]{40}$/);
+    expect(collectCheckout.with.ref).toBe("${{ github.event.pull_request.head.sha }}");
+    expect(collectCheckout.with["persist-credentials"]).toBe(false);
+    expect(workflow.jobs.collect.steps.some((step: { run?: string }) => step.run)).toBe(false);
 
     expect(reason).toContain("OPENAI_API_KEY");
     expect(reason).toContain('"command":"reason"');
@@ -69,8 +153,8 @@ describe("example workflow security contracts", () => {
     );
     expect(reasonUpload.with.path).toContain("reason-bundle-path");
     expect(reasonUpload.with.path).not.toContain("collection-path");
-    const publishDownloads = workflow.jobs.publish.steps.filter(
-      (step: { uses?: string }) => step.uses === "actions/download-artifact@v8"
+    const publishDownloads = workflow.jobs.publish.steps.filter((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/download-artifact@")
     );
     expect(publishDownloads.map((step: { with: { name: string } }) => step.with.name)).toEqual([
       "hedge-collection-${{ github.run_id }}",
@@ -84,6 +168,8 @@ describe("example workflow security contracts", () => {
       );
       expect(actionStep.with["workflow-sha"]).toBe("${{ github.workflow_sha }}");
       expect(actionStep.with["action-ref"]).toBe("YOUR_ORG/hedge@PINNED_COMMIT_SHA");
+      expect(actionStep.with["base-ref"]).toBe("${{ github.event.pull_request.base.sha }}");
+      expect(actionStep.with["head-ref"]).toBe("${{ github.event.pull_request.head.sha }}");
     }
 
     for (const [name, job] of Object.entries(workflow.jobs as Record<string, unknown>)) {
@@ -92,6 +178,22 @@ describe("example workflow security contracts", () => {
       const hasWriteAuthority = /\"(?:contents|pull-requests)\":\"write\"/.test(serialized);
       expect(hasModelCredential && hasWriteAuthority, name).toBe(false);
     }
+  });
+
+  it("uses trusted-base orchestration without executing target repository code", async () => {
+    const text = await readFile("examples/workflows/hedge.yml", "utf8");
+    const workflow = YAML.parse(text);
+
+    expect(text).toContain("pull_request_target:");
+    expect(text).not.toMatch(/^\s+pull_request:\s*$/m);
+    expect(workflow.jobs.collect.steps.every((step: { run?: string }) => !step.run)).toBe(true);
+    expect(
+      workflow.jobs.reason.steps.some((step: { uses?: string }) => step.uses?.includes("checkout"))
+    ).toBe(false);
+    expect(
+      workflow.jobs.publish.steps.some((step: { uses?: string }) => step.uses?.includes("checkout"))
+    ).toBe(false);
+    expect(JSON.stringify(workflow.jobs.collect)).not.toContain("OPENAI_API_KEY");
   });
 
   it("does not let Action metadata defaults silently override repository model policy", async () => {
@@ -136,10 +238,12 @@ describe("example workflow security contracts", () => {
     const workflow = await readFile("examples/workflows/hedge.yml", "utf8");
     expect(workflow).toContain("html-report-path");
     expect(workflow).toContain("results.sarif");
-    expect(workflow).toContain("upload-sarif@v4");
+    expect(workflow).toMatch(/github\/codeql-action\/upload-sarif@[a-f0-9]{40}/);
   });
   it("binds Codex remediation to an integrity-checked report for the current PR head", async () => {
     const workflow = await readFile("examples/workflows/hedge-fix.yml", "utf8");
+    expect(workflow).toContain("match[1].toUpperCase()");
+    expect(workflow).toContain("core.setOutput('authorized', 'true')");
     expect(workflow).toContain("payloadDigest");
     expect(workflow).toContain("actualDigest");
     expect(workflow).toContain("payload.sourceCommit !== pr.data.head.sha");
@@ -179,6 +283,10 @@ describe("example workflow security contracts", () => {
     expect(workflow).toContain("git apply --check");
     expect(workflow).toContain("needs.validate-patch.result == 'success'");
     expect(workflow).toContain("Pull-request head changed after remediation authorization");
+    expect(workflow).toContain(
+      'BRANCH="hedge/fix-${RISK_ID,,}-pr-${PR_NUMBER}-${SOURCE_COMMIT:0:12}"'
+    );
+    expect(workflow).toContain('gh pr list --state all --head "$BRANCH"');
     expect(workflow).toContain("draft: true");
     expect(workflow).not.toContain("${FINAL_MESSAGE}");
   });

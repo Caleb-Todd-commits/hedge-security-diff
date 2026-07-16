@@ -30,7 +30,7 @@
 | Proof bundle                              | Working                         | SHA-256 manifest plus graph/register/source coherence                                    |
 | Public JSON Schemas                       | Generated                       | `schemas/*.schema.json`                                                                  |
 | DriftBench                                | 45 cases pass                   | `eval/results.md`, `eval/results.json`                                                   |
-| Unit/contract/replay/schema tests         | 226 pass                        | `npm test`                                                                               |
+| Unit/contract/replay/schema tests         | 230 pass                        | `npm test`                                                                               |
 | Demo repository                           | Working generator               | prepared branches and executable witness                                                 |
 
 ## Implemented but not live-validated here

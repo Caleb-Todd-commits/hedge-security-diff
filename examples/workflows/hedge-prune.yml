@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Authorize and parse risk acceptance
         id: command
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const body = context.payload.comment.body.trim();
@@ -30,7 +30,7 @@ jobs:
             core.setOutput('reason_b64', Buffer.from(match[2], 'utf8').toString('base64'));
             core.setOutput('actor', actor);
             core.setOutput('base_ref', pr.data.base.ref);
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ steps.command.outputs.base_ref }}
           fetch-depth: 0

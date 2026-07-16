@@ -22,7 +22,18 @@ describe("Hedge installer", () => {
 
     const workflowText = await readFile(join(root, ".github/workflows/hedge.yml"), "utf8");
     const workflow = YAML.parse(workflowText);
+    expect(workflow.on.pull_request_target.types).toEqual(["opened", "synchronize", "reopened"]);
+    expect(workflow.on.pull_request).toBeUndefined();
     expect(workflow.permissions.contents).toBe("read");
+    expect(workflow.jobs.collect.if).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository"
+    );
+    expect(workflow.jobs.reason.if).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository"
+    );
+    expect(workflow.jobs.publish.if).toContain(
+      "github.event.pull_request.head.repo.full_name == github.repository"
+    );
     expect(workflow.jobs.collect.permissions["pull-requests"]).toBe("read");
     expect(workflow.jobs.reason.permissions).toEqual({});
     expect(
@@ -30,6 +41,13 @@ describe("Hedge installer", () => {
     ).toBe(false);
     expect(workflow.jobs.publish.permissions["pull-requests"]).toBe("write");
     expect(workflow.jobs.publish.permissions["security-events"]).toBe("write");
+    const checkout = workflow.jobs.collect.steps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/checkout@")
+    );
+    expect(checkout.uses).toMatch(/^actions\/checkout@[a-f0-9]{40}$/);
+    expect(checkout.with.ref).toBe("${{ github.event.pull_request.head.sha }}");
+    expect(checkout.with["persist-credentials"]).toBe(false);
+    expect(workflow.jobs.collect.steps.some((step: { run?: string }) => step.run)).toBe(false);
     expect(workflowText).toContain("example/hedge@0123456789012345678901234567890123456789");
     expect(workflowText).not.toContain("PINNED_COMMIT_SHA");
     for (const jobName of ["collect", "reason", "publish"]) {
@@ -39,6 +57,8 @@ describe("Hedge installer", () => {
       expect(actionStep.with["action-ref"]).toBe(
         "example/hedge@0123456789012345678901234567890123456789"
       );
+      expect(actionStep.with["base-ref"]).toBe("${{ github.event.pull_request.base.sha }}");
+      expect(actionStep.with["head-ref"]).toBe("${{ github.event.pull_request.head.sha }}");
     }
     expect(workflowText).toContain("command: collect");
     expect(workflowText).toContain("command: reason");
@@ -85,6 +105,14 @@ describe("Hedge installer", () => {
     expect(verify).toContain("example/hedge@0123456789012345678901234567890123456789");
     expect(`${fix}\n${verify}\n${prune}`).not.toContain("PINNED_COMMIT_SHA");
     expect(prune).toContain('git commit -m "chore: accept ${RISK_ID}"');
+    for (const relative of result.written.filter((file) => file.endsWith(".yml"))) {
+      const text = await readFile(join(root, relative), "utf8");
+      for (const match of text.matchAll(/uses:\s*([^\s#]+)/g)) {
+        expect(match[1], relative).toMatch(
+          /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)?@[a-f0-9]{40}$/
+        );
+      }
+    }
   });
 
   it("rejects malformed action references", async () => {

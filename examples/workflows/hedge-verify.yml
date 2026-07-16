@@ -39,7 +39,7 @@ permissions:
   contents: read
 
 env:
-  HEDGE_WITNESS_IMAGE: node:22-bookworm-slim
+  HEDGE_WITNESS_IMAGE: node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3
 
 jobs:
   validate-inputs:
@@ -51,12 +51,13 @@ jobs:
       vulnerable_sha: ${{ steps.validate.outputs.vulnerable_sha }}
       repaired_sha: ${{ steps.validate.outputs.repaired_sha }}
       state_sha: ${{ steps.validate.outputs.state_sha }}
+      state_branch: ${{ steps.validate.outputs.state_branch }}
       witness_path: ${{ steps.validate.outputs.witness_path }}
       legitimate_script: ${{ steps.validate.outputs.legitimate_script }}
     steps:
       - name: Validate inputs and resolve exact revisions
         id: validate
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           RISK_ID: ${{ inputs.risk_id }}
           VULNERABLE_REF: ${{ inputs.vulnerable_ref }}
@@ -68,7 +69,8 @@ jobs:
           github-token: ${{ github.token }}
           script: |
             const riskId = process.env.RISK_ID;
-            const refs = [process.env.VULNERABLE_REF, process.env.REPAIRED_REF, process.env.STATE_REF];
+            const stateRef = process.env.STATE_REF;
+            const refs = [process.env.VULNERABLE_REF, process.env.REPAIRED_REF, stateRef];
             if (!/^HEDGE-[0-9]{3,}$/.test(riskId)) return core.setFailed('risk_id must be HEDGE-NNN.');
             for (const ref of refs) {
               if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/.test(ref) || ref.includes('..') || ref.includes('@{')) {
@@ -89,15 +91,49 @@ jobs:
             };
             const vulnerableSha = await resolveCommit(refs[0]);
             const repairedSha = await resolveCommit(refs[1]);
-            const stateSha = await resolveCommit(refs[2]);
-            await github.rest.repos.getBranch({ ...context.repo, branch: refs[2] });
+            const repository = await github.rest.repos.get(context.repo);
+            const defaultBranch = repository.data.default_branch;
+            if (!defaultBranch || stateRef !== defaultBranch) {
+              return core.setFailed(`state_ref must exactly match the repository default branch (${defaultBranch || 'unavailable'}).`);
+            }
+            const stateBranch = await github.rest.repos.getBranch({ ...context.repo, branch: defaultBranch });
+            if (stateBranch.data.name !== defaultBranch || stateBranch.data.protected !== true) {
+              return core.setFailed('The repository default branch must have branch protection or a matching ruleset before verification state can be recorded.');
+            }
+            const stateSha = String(stateBranch.data.commit?.sha || '').toLowerCase();
+            if (!/^[a-f0-9]{40}$/.test(stateSha)) {
+              return core.setFailed('The protected default branch did not resolve to an exact commit SHA.');
+            }
             if (vulnerableSha === repairedSha) return core.setFailed('Vulnerable and repaired revisions must differ.');
             core.setOutput('risk_id', riskId);
             core.setOutput('vulnerable_sha', vulnerableSha);
             core.setOutput('repaired_sha', repairedSha);
             core.setOutput('state_sha', stateSha);
+            core.setOutput('state_branch', defaultBranch);
             core.setOutput('witness_path', witnessPath);
             core.setOutput('legitimate_script', legitimateScript);
+
+  resolve-runtime-image:
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      image: ${{ steps.resolve.outputs.image }}
+    steps:
+      - name: Validate the configured runtime image digest
+        id: resolve
+        env:
+          IMAGE: ${{ env.HEDGE_WITNESS_IMAGE }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const image = process.env.IMAGE;
+          if (!/^node:22-bookworm-slim@sha256:[a-f0-9]{64}$/.test(image)) {
+            throw new Error('The witness runtime must be a digest-pinned node:22-bookworm-slim image.');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `image=${image}\n`);
+          NODE
+          docker pull "$IMAGE"
 
   prepare-witness:
     needs: validate-inputs
@@ -107,7 +143,7 @@ jobs:
     outputs:
       witness_digest: ${{ steps.bundle.outputs.witness_digest }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.validate-inputs.outputs.state_sha }}
           persist-credentials: false
@@ -146,7 +182,7 @@ jobs:
           }, null, 2)}\n`, { mode: 0o400 });
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `witness_digest=${digest}\n`);
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-witness-${{ github.run_id }}
           path: .hedge/witness
@@ -154,7 +190,7 @@ jobs:
           retention-days: 7
 
   witness-counterfactual:
-    needs: [validate-inputs, prepare-witness]
+    needs: [validate-inputs, prepare-witness, resolve-runtime-image]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -168,11 +204,11 @@ jobs:
           - phase: repaired
             revision: ${{ needs.validate-inputs.outputs.repaired_sha }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ matrix.revision }}
           persist-credentials: false
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
           cache: npm
@@ -180,7 +216,7 @@ jobs:
         timeout-minutes: 8
         run: |
           if [[ -f package-lock.json ]]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-witness-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-witness
@@ -190,7 +226,7 @@ jobs:
           PHASE: ${{ matrix.phase }}
           REVISION: ${{ matrix.revision }}
           RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
-          IMAGE: ${{ env.HEDGE_WITNESS_IMAGE }}
+          IMAGE: ${{ needs.resolve-runtime-image.outputs.image }}
         run: |
           mkdir -p "$RUNNER_TEMP/hedge-outcome"
           docker pull "$IMAGE"
@@ -230,6 +266,7 @@ jobs:
             phase: process.env.PHASE,
             riskId: process.env.RISK_ID,
             revision: process.env.REVISION,
+            runtimeImage: process.env.IMAGE,
             witnessDigest: actualDigest,
             outcome,
             exitCode,
@@ -237,7 +274,7 @@ jobs:
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/hedge-outcome/${process.env.PHASE}.json`, `${JSON.stringify(result, null, 2)}\n`);
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-witness-result-${{ matrix.phase }}-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-outcome/${{ matrix.phase }}.json
@@ -245,17 +282,17 @@ jobs:
           retention-days: 30
 
   legitimate-behavior:
-    needs: validate-inputs
+    needs: [validate-inputs, resolve-runtime-image]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.validate-inputs.outputs.repaired_sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22
           cache: npm
@@ -266,7 +303,7 @@ jobs:
       - name: Run legitimate behavior without network or credentials
         env:
           SCRIPT: ${{ needs.validate-inputs.outputs.legitimate_script }}
-          IMAGE: ${{ env.HEDGE_WITNESS_IMAGE }}
+          IMAGE: ${{ needs.resolve-runtime-image.outputs.image }}
           REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
         run: |
           docker pull "$IMAGE"
@@ -285,11 +322,12 @@ jobs:
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/hedge-legitimate/result.json`, `${JSON.stringify({
             schemaVersion: '0.1',
             repairedRevision: process.env.REPAIRED_SHA,
+            runtimeImage: process.env.IMAGE,
             passed: exitCode === 0,
             exitCode
           }, null, 2)}\n`);
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-legitimate-result-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-legitimate/result.json
@@ -303,7 +341,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.validate-inputs.outputs.repaired_sha }}
           fetch-depth: 0
@@ -421,7 +459,7 @@ jobs:
             architectureEvidence: unique
           }, null, 2)}\n`, { mode: 0o600 });
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-architecture-proof-${{ github.run_id }}
           path: .hedge/verification/architecture.json
@@ -435,20 +473,21 @@ jobs:
       - witness-counterfactual
       - legitimate-behavior
       - architecture-delta
+      - resolve-runtime-image
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: hedge-witness-result-*-${{ github.run_id }}
           path: ${{ runner.temp }}/verification
           merge-multiple: true
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-legitimate-result-${{ github.run_id }}
           path: ${{ runner.temp }}/verification/legitimate
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-architecture-proof-${{ github.run_id }}
           path: ${{ runner.temp }}/verification/architecture
@@ -458,6 +497,7 @@ jobs:
           VULNERABLE_SHA: ${{ needs.validate-inputs.outputs.vulnerable_sha }}
           REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
           EXPECTED_WITNESS_DIGEST: ${{ needs.prepare-witness.outputs.witness_digest }}
+          EXPECTED_RUNTIME_IMAGE: ${{ needs.resolve-runtime-image.outputs.image }}
         run: |
           mkdir -p .hedge/verification
           node <<'NODE'
@@ -483,11 +523,16 @@ jobs:
             if (result.witnessDigest !== process.env.EXPECTED_WITNESS_DIGEST) {
               throw new Error(`Witness ${phase} digest binding failed.`);
             }
+            if (result.runtimeImage !== process.env.EXPECTED_RUNTIME_IMAGE) {
+              throw new Error(`Witness ${phase} runtime-image binding failed.`);
+            }
             if (!['reproduced', 'blocked-by-control', 'inconclusive'].includes(result.outcome)) {
               throw new Error(`Witness ${phase} outcome is invalid.`);
             }
           }
-          if (legitimate.repairedRevision !== process.env.REPAIRED_SHA || typeof legitimate.passed !== 'boolean') {
+          if (legitimate.repairedRevision !== process.env.REPAIRED_SHA ||
+              legitimate.runtimeImage !== process.env.EXPECTED_RUNTIME_IMAGE ||
+              typeof legitimate.passed !== 'boolean') {
             throw new Error('Legitimate-behavior result binding failed.');
           }
           if (architecture.riskId !== process.env.RISK_ID ||
@@ -509,7 +554,11 @@ jobs:
             architectureControlChanged: architecture.architectureControlChanged === true,
             graphDeltaDigest: architecture.graphDeltaDigest,
             architectureEvidence: architecture.architectureEvidence || [],
-            commands: ['immutable reviewed witness bundle', 'network-isolated legitimate behavior', 'exact offline architecture diff'],
+            commands: [
+              'immutable reviewed witness bundle',
+              `network-isolated runtime ${process.env.EXPECTED_RUNTIME_IMAGE}`,
+              'exact offline architecture diff'
+            ],
             notes: [
               ...((vulnerable.notes || []).map(String)),
               ...((repaired.notes || []).map(String))
@@ -522,7 +571,7 @@ jobs:
           };
           fs.writeFileSync(`.hedge/verification/${process.env.RISK_ID}.json`, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/verification/*.json
@@ -536,11 +585,33 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - name: Revalidate the protected default branch and exact state revision
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          STATE_BRANCH: ${{ needs.validate-inputs.outputs.state_branch }}
+          STATE_SHA: ${{ needs.validate-inputs.outputs.state_sha }}
         with:
-          ref: ${{ inputs.state_ref }}
+          github-token: ${{ github.token }}
+          script: |
+            const repository = await github.rest.repos.get(context.repo);
+            if (repository.data.default_branch !== process.env.STATE_BRANCH) {
+              return core.setFailed('The repository default branch changed after verification authorization.');
+            }
+            const branch = await github.rest.repos.getBranch({
+              ...context.repo,
+              branch: process.env.STATE_BRANCH
+            });
+            if (branch.data.protected !== true) {
+              return core.setFailed('The default branch is no longer protected; refusing to record verification state.');
+            }
+            if (String(branch.data.commit?.sha || '').toLowerCase() !== process.env.STATE_SHA) {
+              return core.setFailed('The protected default branch changed after verification authorization.');
+            }
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ needs.validate-inputs.outputs.state_sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-verification-${{ needs.validate-inputs.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/verification
@@ -556,7 +627,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RISK_ID: ${{ needs.validate-inputs.outputs.risk_id }}
           REPAIRED_SHA: ${{ needs.validate-inputs.outputs.repaired_sha }}
-          STATE_REF: ${{ inputs.state_ref }}
+          STATE_REF: ${{ needs.validate-inputs.outputs.state_branch }}
         run: |
           if git diff --quiet -- threatmodel.json THREATMODEL.md; then
             echo "No state change was produced."

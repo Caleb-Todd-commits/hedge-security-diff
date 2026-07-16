@@ -33,10 +33,10 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Stable `HEDGE-NNN` register, fingerprint deduplication, recorded acceptance, verification history, bounded architecture-run history, atomic state writes, and full-register integrity sealing.
 - Lifecycle: `open → mitigation-detected → verification-available → verified`.
 - Idempotent PR reports containing a machine-readable handoff payload.
-- Approval-gated `@hedge fix HEDGE-NNN` example using `openai/codex-action@v1`, an isolated patch artifact, and a separate draft-PR publishing job.
+- Approval-gated `@hedge fix HEDGE-NNN` example using an immutable `openai/codex-action` commit, an isolated patch artifact, normalized per-risk concurrency, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 226 unit, contract, replay, and schema tests.
+- 45-case deterministic DriftBench suite and 230 unit, contract, replay, and schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -143,7 +143,7 @@ npm run audit:high
 
 ## GitHub Action
 
-Use a published Hedge revision pinned to its immutable 40-character commit SHA. `hedge install` writes the complete three-job workflow from `examples/workflows/hedge.yml`: `collect` has a read-only checkout and no OpenAI key, `reason` has the OpenAI key but no checkout or write authority, and `publish` has GitHub write authority but no OpenAI key.
+Use a published Hedge revision pinned to its immutable 40-character commit SHA. `hedge install` writes the complete three-job workflow from `examples/workflows/hedge.yml`: `collect` has a read-only checkout and no OpenAI key, `reason` has the OpenAI key but no checkout or write authority, and `publish` has GitHub write authority but no OpenAI key. The workflow definition comes from the trusted base branch through `pull_request_target`; the pull-request head is checked out only in the secretless collector and is never executed.
 
 ```bash
 hedge install \
@@ -152,6 +152,8 @@ hedge install \
 ```
 
 The installer is additive by default and will not overwrite an existing workflow unless `--force` is supplied. Run `hedge doctor` afterward from the repository root; from a nested directory, pass the repository path with `--root`.
+
+You do not create or paste a GitHub personal access token for the installed workflows. GitHub automatically issues the short-lived `${{ github.token }}` with each job's declared permissions. Local repository administration uses your normal `gh auth login --web` session; only `OPENAI_API_KEY` is stored as a repository secret for the isolated reasoning and Codex jobs.
 
 See `examples/workflows/` for the PR check, model refresh, Codex remediation, and counterfactual verification workflows.
 

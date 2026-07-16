@@ -1,7 +1,10 @@
 name: Hedge security diff
 
 on:
-  pull_request:
+  # The workflow definition and permissions come from the trusted base branch.
+  # Head-revision files are checked out only in the secretless collector and
+  # are parsed as data; no target repository command is executed.
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -13,7 +16,9 @@ concurrency:
 
 jobs:
   collect:
-    # Build Week scope: same-repository pull requests only.
+    # Build Week scope: same-repository pull requests only. This explicit gate
+    # is still required even though pull_request_target supplies a trusted-base
+    # workflow definition.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -26,7 +31,7 @@ jobs:
       coverage_status: ${{ steps.hedge.outputs.coverage-status }}
       analysis_status: ${{ steps.hedge.outputs.analysis-status }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -51,7 +56,7 @@ jobs:
           action-ref: YOUR_ORG/hedge@PINNED_COMMIT_SHA
 
       - name: Upload integrity-bound collection
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-collection-${{ github.run_id }}
           path: |
@@ -62,7 +67,10 @@ jobs:
 
   reason:
     needs: collect
-    if: needs.collect.result == 'success' && needs.collect.outputs.surface_changed == 'true'
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.collect.result == 'success' &&
+      needs.collect.outputs.surface_changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # No checkout and no GitHub authority. The only secret is the model key.
@@ -71,7 +79,7 @@ jobs:
       coverage_status: ${{ steps.hedge.outputs.coverage-status }}
       analysis_status: ${{ steps.hedge.outputs.analysis-status }}
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-collection-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-collection
@@ -93,7 +101,7 @@ jobs:
           action-ref: YOUR_ORG/hedge@PINNED_COMMIT_SHA
 
       - name: Upload validated reasoning bundle
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-reason-${{ github.run_id }}
           path: |
@@ -106,6 +114,7 @@ jobs:
     needs: [collect, reason]
     if: >-
       always() &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       needs.collect.result == 'success' &&
       (needs.collect.outputs.surface_changed != 'true' || needs.reason.result == 'success')
     runs-on: ubuntu-latest
@@ -117,14 +126,14 @@ jobs:
       security-events: write
     steps:
       - name: Download immutable collection
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-collection-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-collection
 
       - name: Download reasoned run
         if: needs.collect.outputs.surface_changed == 'true'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-reason-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-reason
@@ -147,7 +156,7 @@ jobs:
 
       - name: Upload bounded reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-security-diff-${{ github.event.pull_request.number }}-${{ github.run_id }}
           path: |
@@ -164,7 +173,7 @@ jobs:
         # stale-head check. A valid BLOCK may fail the Action afterwards, so
         # key this upload to the validated output rather than step success.
         if: always() && steps.hedge.outputs.analysis-path != '' && hashFiles('.hedge/results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: .hedge/results.sarif
           category: hedge-security-diff

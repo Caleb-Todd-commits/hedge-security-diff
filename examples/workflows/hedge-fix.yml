@@ -6,22 +6,19 @@ on:
 
 # This example is intentionally same-repository only. The Codex job can modify
 # a checkout but cannot push. A separate secretless job publishes the patch.
-
-concurrency:
-  # A valid command is exactly `@hedge fix HEDGE-NNN`, so the bounded command
-  # text supplies the risk component before the authorize job has outputs.
-  group: hedge-fix-${{ github.repository }}-${{ github.event.issue.number }}-${{ github.event.comment.body }}
-  cancel-in-progress: false
+# The prerequisite job normalizes and authorizes the command before its outputs
+# are allowed to determine model/edit concurrency.
 
 jobs:
   authorize:
-    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '@hedge fix ')
+    if: github.event.issue.pull_request
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: read
       pull-requests: read
     outputs:
+      authorized: ${{ steps.auth.outputs.authorized }}
       risk_id: ${{ steps.auth.outputs.risk_id }}
       head_sha: ${{ steps.auth.outputs.head_sha }}
       head_ref: ${{ steps.auth.outputs.head_ref }}
@@ -31,15 +28,17 @@ jobs:
     steps:
       - name: Authorize command and build trusted prompt
         id: auth
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           github-token: ${{ github.token }}
           script: |
             const crypto = require('crypto');
             const command = context.payload.comment.body.trim();
             const match = /^@hedge\s+fix\s+(HEDGE-\d{3,})$/i.exec(command);
-            if (!match) core.setFailed('Use exactly: @hedge fix HEDGE-NNN');
-            if (!match) return;
+            if (!match) {
+              if (/^@hedge\b/i.test(command)) core.setFailed('Use exactly: @hedge fix HEDGE-NNN');
+              return;
+            }
 
             const riskId = match[1].toUpperCase();
             const actor = context.payload.comment.user.login;
@@ -135,6 +134,7 @@ jobs:
               ''
             ].join('\n');
             const promptB64 = Buffer.from(prompt, 'utf8').toString('base64');
+            core.setOutput('authorized', 'true');
             core.setOutput('risk_id', riskId);
             core.setOutput('head_sha', pr.data.head.sha);
             core.setOutput('head_ref', pr.data.head.ref);
@@ -144,11 +144,17 @@ jobs:
 
   remediate:
     needs: authorize
+    if: needs.authorize.outputs.authorized == 'true'
+    concurrency:
+      # Job-level concurrency can use trusted prerequisite outputs. Case and
+      # whitespace variants therefore converge on one repository/PR/risk lock.
+      group: hedge-fix-${{ github.repository }}-${{ needs.authorize.outputs.pr_number }}-${{ needs.authorize.outputs.risk_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.authorize.outputs.head_sha }}
           fetch-depth: 0
@@ -163,7 +169,7 @@ jobs:
 
       - name: Run Codex as the final secret-bearing step
         id: codex
-        uses: openai/codex-action@v1
+        uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt-file: .hedge/codex-remediation.md
@@ -218,7 +224,7 @@ jobs:
           }, null, 2)}\n`, { mode: 0o600 });
           NODE
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: hedge-remediation-${{ needs.authorize.outputs.risk_id }}-${{ github.run_id }}
@@ -238,11 +244,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.authorize.outputs.head_sha }}
           persist-credentials: false
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-remediation-${{ needs.authorize.outputs.risk_id }}-${{ github.run_id }}
           path: ${{ runner.temp }}/hedge-remediation
@@ -323,7 +329,7 @@ jobs:
           NODE
           git apply --check "$PATCH"
           git apply "$PATCH"
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: hashFiles('package.json') != ''
         with:
           node-version: 22
@@ -349,7 +355,7 @@ jobs:
           const digest = crypto.createHash('sha256').update(fs.readFileSync(process.env.PATCH)).digest('hex');
           if (marker.patchDigest !== digest) throw new Error('Target validation altered the patch artifact.');
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: hedge-remediation-validation-${{ needs.authorize.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/validated/patch.json
@@ -359,29 +365,34 @@ jobs:
   publish-draft:
     needs: [authorize, remediate, validate-patch]
     if: always() && needs.remediate.result == 'success' && needs.validate-patch.result == 'success'
+    concurrency:
+      # Publication stays secretless and separately serialized. Together with
+      # the deterministic branch, this closes the final check/create race.
+      group: hedge-fix-publish-${{ github.repository }}-${{ needs.authorize.outputs.pr_number }}-${{ needs.authorize.outputs.risk_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.authorize.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: true
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-remediation-${{ needs.authorize.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/artifact
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: hedge-remediation-validation-${{ needs.authorize.outputs.risk_id }}-${{ github.run_id }}
           path: .hedge/validation
 
       - name: Reject a stale pull-request head
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           EXPECTED_HEAD: ${{ needs.authorize.outputs.head_sha }}
           PR_NUMBER: ${{ needs.authorize.outputs.pr_number }}
@@ -434,7 +445,7 @@ jobs:
 
       - name: Open a draft remediation PR
         if: steps.apply.outputs.changed == 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           RISK_ID: ${{ needs.authorize.outputs.risk_id }}
           HEAD_BRANCH: ${{ steps.apply.outputs.branch }}

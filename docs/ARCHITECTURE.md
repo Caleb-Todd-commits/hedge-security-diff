@@ -78,7 +78,9 @@ Model-origin findings remain reviewable inferences but cannot directly create a 
 
 ## 11. Credential-separated PR pipeline
 
-The installed workflow uses three artifact-bound jobs:
+The installed workflow is triggered by `pull_request_target`, so its definition, permissions, and pinned Hedge Action come from the trusted base branch even when a same-repository pull request edits `.github/workflows/hedge.yml`. Every job retains an explicit same-repository guard. The exact event `base.sha` and `head.sha` are passed through the pipeline; head files enter only the secretless collector, are parsed as untrusted data, and are never executed.
+
+The workflow uses three artifact-bound jobs:
 
 1. **Collect:** read-only GitHub authority, exact base/head extraction, deterministic analysis, coverage/health recording, and RunManifest creation in a runner-owned temporary directory; no OpenAI key or target execution.
 2. **Reason:** no target checkout and no GitHub write authority; validates the immutable collection manifest before Luna/Sol or deterministic fallback and emits only a strict reason bundle plus its manifest into a separate temporary directory.

@@ -42,7 +42,7 @@ It verifies:
 At packaging time:
 
 - **49** test files passed.
-- **226** unit, contract, replay, and schema tests passed.
+- **230** unit, contract, replay, and schema tests passed.
 - **45 of 45** bundled deterministic evaluation cases passed.
 - The vulnerable demo branch produced an evidence-linked security architecture delta and two findings.
 - The benign demo branch produced no graph delta and no finding.
