@@ -18,6 +18,7 @@ The script creates these real branches and commits:
 4. `demo/03-upload-remediation` — authentication, ownership, type, and size controls.
 5. `demo/04-admin-route` — destructive administrative route without authorization.
 6. `demo/05-injection-attempt` — instruction-like source comment that must remain inert data.
+7. `demo/06-pages-api-upload` — Pages API default handler with an unbounded storage write.
 
 ## Counterfactual witness
 
