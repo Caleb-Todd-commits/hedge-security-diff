@@ -22,7 +22,20 @@ jobs:
       - run: npm run schemas
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm test
+      - name: Run tests with diagnostic output
+        id: tests
+        continue-on-error: true
+        run: npm test -- --reporter=json --outputFile=test-results.json
+      - name: Upload failed test diagnostics
+        if: steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-failure
+          path: test-results.json
+          retention-days: 1
+      - name: Enforce test result
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
       - run: npm run eval
       - name: Verify generated artifacts are current
         run: git diff --exit-code -- schemas eval/results.json eval/results.md
