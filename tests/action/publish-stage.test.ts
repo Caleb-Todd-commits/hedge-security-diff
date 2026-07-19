@@ -99,7 +99,7 @@ describe("write-authorized publisher", () => {
 });
 
 async function createNoDeltaFixture() {
-  const root = await mkdtemp(join(tmpdir(), "hedge-publish-stage-"));
+  const root = await mkdtemp(join(process.env.RUNNER_TEMP || tmpdir(), "hedge-publish-stage-"));
   await git(root, ["init", "--quiet"]);
   await git(root, ["config", "user.email", "hedge-tests@example.invalid"]);
   await git(root, ["config", "user.name", "Hedge Tests"]);
