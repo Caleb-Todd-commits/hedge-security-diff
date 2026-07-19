@@ -2,7 +2,7 @@
 
 ## Included deterministic suite
 
-The package contains 45 before/after fixtures covering:
+The package contains 47 before/after fixtures covering:
 
 - Benign refactors and comment-only changes.
 - New unauthenticated mutations.
@@ -15,6 +15,7 @@ The package contains 45 before/after fixtures covering:
 - Secret-bearing request flows and logging.
 - `pull_request_target`, `issue_comment`, and manual workflow boundaries.
 - Next.js aliases, dynamic routes, catch-all routes, and handler scoping.
+- Next.js Pages API default handlers, dynamic route normalization, and protected variants.
 - Express inline and named handlers.
 - Security-relevant dependency changes.
 - Prompt-injection text that must remain inert data.
@@ -43,7 +44,7 @@ The result reports:
 
 ## Current included result
 
-All 45 bundled cases pass with 100% on the metrics above. That result is intentionally narrow: the fixtures were written for the supported deterministic extractors and rules. It is **not** general vulnerability-detection accuracy.
+All 47 bundled cases pass with 100% on the metrics above. That result is intentionally narrow: the fixtures were written for the supported deterministic extractors and rules. It is **not** general vulnerability-detection accuracy.
 
 ## API-backed live evaluation
 

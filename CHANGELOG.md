@@ -11,7 +11,8 @@
 - Bounded model spend with zero-call deterministic routes, direct Sol review for sensitive/high-consequence deltas, Luna-to-optional-Sol ambiguity routing, explicit reasoning/output/patch/request ceilings, and no automatic retries.
 - Made the deep-analysis Structured Output schema strict-convertible, bounded it to three evidence-linked proposals, and removed unused model prose fields.
 - Added provider token-detail telemetry without unmeasured dollar estimates; explicit prompt-cache writes remain deferred pending measured stable-prefix reuse.
-- Expanded the automated suite to 254 tests while retaining 45/45 deterministic evaluation cases.
+- Added Next.js Pages API route extraction, repository compatibility diagnostics, and reproducible no-build release packaging.
+- Expanded the automated suite to 258 tests and 47/47 deterministic evaluation cases.
 
 ## 0.5.1 — public, installable Build Week release
 

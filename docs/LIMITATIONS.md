@@ -1,6 +1,6 @@
 # Limitations and claim boundaries
 
-- Hedge supports a narrow TypeScript target: Next.js App Router, basic Express, common Prisma, object-storage, network, workflow, and credential patterns.
+- Hedge supports a narrow TypeScript target: Next.js App Router, Next.js Pages API routes, basic Express, common Prisma, object-storage, network, workflow, and credential patterns.
 - Handler-scoped AST analysis is not complete interprocedural data flow. Same-file helper propagation and supported middleware are modeled, but imported helpers, decorators, generated routes, runtime-computed matchers, infrastructure policy, and deployment topology may remain unknown.
 - A detected control means relevant code is associated with the supported handler or middleware path; it does not prove semantic correctness, runtime reachability, or complete enforcement.
 - Working-tree collection refuses symlinks and out-of-root real paths. PR comparison instead reads bounded regular blobs directly from exact Git commits; the required base and head objects must exist in the local object database.

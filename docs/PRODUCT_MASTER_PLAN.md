@@ -66,7 +66,7 @@ Secretless publisher: GitHub write permissions, no OpenAI key
 
 Only after Next.js gates pass, expand through a versioned extractor interface in this order:
 
-1. Next.js Pages Router.
+1. Remaining Next.js Pages Router surfaces beyond API routes.
 2. Richer Express.
 3. tRPC and GraphQL.
 4. Queues, cron, and event consumers.

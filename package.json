@@ -25,6 +25,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate:release": "bash scripts/validate-release.sh",
+    "package:release": "node scripts/package-release.mjs",
+    "validate:release-package": "node scripts/validate-packaged-release.mjs",
     "audit:high": "npm audit --audit-level=high",
     "validate:demo": "bash scripts/validate-demo.sh",
     "demo:generate": "bash scripts/generate-demo-output.sh",

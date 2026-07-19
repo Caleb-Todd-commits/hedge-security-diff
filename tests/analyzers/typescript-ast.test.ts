@@ -120,6 +120,40 @@ it("recognizes Next.js authentication wrappers", () => {
   expect(facts.entrypoints[0]?.controls.map((control) => control.type)).toContain("authentication");
 });
 
+it("extracts a Next.js Pages API default export as an ANY entry point", () => {
+  const facts = extractTypeScriptFacts(
+    source(
+      "pages/api/files/upload.ts",
+      `export default async function handler(req: any, res: any) {
+         res.status(200).json({ ok: true });
+       }`
+    ),
+    "nextjs"
+  );
+  expect(facts.entrypoints.map((entry) => `${entry.method} ${entry.path}`)).toContain(
+    "ANY /api/files/upload"
+  );
+});
+
+it("normalizes dynamic Pages API routes and reuses handler analysis", () => {
+  const facts = extractTypeScriptFacts(
+    source(
+      "pages/api/users/[id].ts",
+      `export default withAuth(async function handler(req: any, res: any) {
+         await prisma.user.update({ where: { id: req.query.id }, data: req.body });
+         res.status(200).json({ ok: true });
+       });`
+    ),
+    "nextjs"
+  );
+  expect(facts.entrypoints[0]?.path).toBe("/api/users/:id");
+  expect(facts.entrypoints[0]?.method).toBe("ANY");
+  expect(facts.entrypoints[0]?.controls.map((control) => control.type)).toContain("authentication");
+  expect(facts.entrypoints[0]?.operations.some((operation) => operation.kind === "database")).toBe(
+    true
+  );
+});
+
 it("combines Express global and route middleware controls", () => {
   const facts = extractTypeScriptFacts(
     source(

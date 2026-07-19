@@ -6,6 +6,8 @@ import { loadHedgeContext } from "../config/context.js";
 import { loadThreatRegister, validateThreatRegisterBindings } from "../register/store.js";
 import { fileExists } from "../utils/fs.js";
 import fg from "fast-glob";
+import { buildAttackSurfaceGraph } from "../analyzers/build-graph.js";
+import type { HedgeConfig } from "../domain/schemas.js";
 
 export interface DoctorCheck {
   name: string;
@@ -43,8 +45,10 @@ export async function runDoctor(root: string): Promise<DoctorResult> {
     )
   );
 
+  let parsedConfig: HedgeConfig | undefined;
   try {
     const config = await loadConfig(root);
+    parsedConfig = config;
     checks.push({
       name: "Configuration parse",
       status: "pass",
@@ -52,6 +56,28 @@ export async function runDoctor(root: string): Promise<DoctorResult> {
     });
   } catch (error) {
     checks.push({ name: "Configuration parse", status: "fail", detail: (error as Error).message });
+  }
+
+  if (parsedConfig) {
+    try {
+      const graph = await buildAttackSurfaceGraph({ root, config: parsedConfig });
+      const entrypoints = graph.nodes.filter((node) => node.kind === "entrypoint").length;
+      const coverage = graph.coverage?.status ?? "unsupported";
+      checks.push({
+        name: "Repository surface compatibility",
+        status: graph.framework !== "unknown" && entrypoints > 0 ? "pass" : "warn",
+        detail:
+          graph.framework !== "unknown" && entrypoints > 0
+            ? `Detected ${graph.framework} with ${coverage} coverage and ${entrypoints} supported entry point(s).`
+            : `Detected ${graph.framework} with ${coverage} coverage and ${entrypoints} supported entry point(s); unsupported or empty surfaces produce explicit warnings rather than model guesses.`
+      });
+    } catch (error) {
+      checks.push({
+        name: "Repository surface compatibility",
+        status: "warn",
+        detail: `Could not inspect supported surfaces: ${(error as Error).message}`
+      });
+    }
   }
 
   try {
@@ -99,7 +125,7 @@ export async function runDoctor(root: string): Promise<DoctorResult> {
         });
       }
       const bindingWarnings = validateThreatRegisterBindings(register, {
-        config: await loadConfig(root),
+        config: parsedConfig ?? (await loadConfig(root)),
         context: await loadHedgeContext(root)
       });
       checks.push({

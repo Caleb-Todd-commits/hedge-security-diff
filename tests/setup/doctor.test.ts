@@ -36,6 +36,31 @@ describe("Hedge doctor", () => {
     expect(result.checks.find((check) => check.name === "Baseline integrity")?.status).toBe("warn");
   });
 
+  it("reports supported repository surface compatibility without executing project code", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-doctor-pages-"));
+    await mkdir(join(root, ".git"), { recursive: true });
+    await mkdir(join(root, "pages", "api"), { recursive: true });
+    await writeFile(join(root, "package.json"), '{"name":"fixture"}\n', "utf8");
+    await writeFile(
+      join(root, "pages", "api", "legacy.ts"),
+      `export default function handler(_req: any, res: any) {
+         res.status(200).json({ ok: true });
+       }`,
+      "utf8"
+    );
+    await installHedge({
+      root,
+      actionRef: "example/hedge@0123456789012345678901234567890123456789"
+    });
+    const result = await runDoctor(root);
+    const compatibility = result.checks.find(
+      (check) => check.name === "Repository surface compatibility"
+    );
+    expect(compatibility?.status).toBe("pass");
+    expect(compatibility?.detail).toContain("nextjs");
+    expect(compatibility?.detail).toContain("supported entry point");
+  });
+
   it("fails when a generated workflow still contains an unresolved action placeholder", async () => {
     const root = await mkdtemp(join(tmpdir(), "hedge-doctor-placeholder-"));
     await mkdir(join(root, ".git"), { recursive: true });

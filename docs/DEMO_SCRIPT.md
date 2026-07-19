@@ -8,10 +8,10 @@ Show a static threat-model document beside a repository with many later commits.
 
 ## 0:20–0:45 — Bootstrap
 
-Run:
+Run the prebuilt release CLI:
 
 ```bash
-npx hedge init
+node hedge-v0.5.2/dist/cli/index.cjs init
 ```
 
 Show `THREATMODEL.md`, evidence links, and Mermaid graph.

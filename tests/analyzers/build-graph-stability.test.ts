@@ -165,4 +165,20 @@ describe("semantic graph identity", () => {
       expect.objectContaining({ code: "unresolved-imported-route-handler" })
     );
   });
+
+  it("auto-detects Next.js from Pages API routes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "hedge-pages-auto-"));
+    const config = parseConfigText("framework: auto\n");
+    await mkdir(join(root, "pages", "api"), { recursive: true });
+    await writeFile(
+      join(root, "pages", "api", "legacy.ts"),
+      `export default function handler(_req: any, res: any) {
+         res.status(200).json({ ok: true });
+       }`
+    );
+
+    const graph = await buildAttackSurfaceGraph({ root, config });
+    expect(graph.framework).toBe("nextjs");
+    expect(graph.nodes.some((node) => node.label === "ANY /api/legacy")).toBe(true);
+  });
 });

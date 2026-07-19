@@ -1,7 +1,7 @@
 # Hedge evaluation results
 
-- Cases: 45
-- Passed: 45
+- Cases: 47
+- Passed: 47
 - Failed: 0
 - Benign silence rate: 100.0%
 - Surface-change recall: 100.0%
@@ -56,5 +56,7 @@
 | PASS   | 043-custom-router-protected        |            true |        0 |    yes | —     |
 | PASS   | 044-complex-matcher-unknown        |            true |        1 |    yes | —     |
 | PASS   | 045-same-line-dangerous-operations |            true |        3 |    yes | —     |
+| PASS   | 046-pages-api-upload               |            true |        1 |    yes | —     |
+| PASS   | 047-pages-api-protected            |            true |        0 |    yes | —     |
 
 > These results measure the included deterministic extraction and heuristic fixtures only. They are not a claim of general vulnerability-detection accuracy. GPT-5.6 precision, stability, cost, and latency require separate repeated API-backed evaluation.

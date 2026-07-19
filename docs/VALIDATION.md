@@ -25,6 +25,7 @@ It verifies:
 - The deterministic DriftBench fixture suite through the unit/contract test gate, keeping the working tree unchanged.
 - The presence and startup behavior of the already-built GitHub Action and CLI artifacts.
 - CLI startup and executable permissions.
+- Reproducible no-build release assembly, checksums, clean extraction, installation, doctor diagnostics, and first offline architecture result.
 - Generated Draft 2020-12 JSON Schemas.
 - Standalone HTML, SARIF, delta, analysis, and proof-bundle artifacts.
 - Credential-shaped repository literals are redacted before model/report evidence is created; model-controlled Markdown, HTML, mentions, code fences, and Mermaid labels are sanitized.
@@ -41,9 +42,9 @@ It verifies:
 
 At packaging time:
 
-- **49** test files passed.
-- **254** unit, contract, replay, and schema tests passed.
-- **45 of 45** bundled deterministic evaluation cases passed.
+- **53** test files passed.
+- **258** unit, contract, replay, and schema tests passed.
+- **47 of 47** bundled deterministic evaluation cases passed.
 - The vulnerable demo branch produced an evidence-linked security architecture delta and two findings.
 - The benign demo branch produced no graph delta and no finding.
 - The vulnerable witness returned `reproduced` before the fix.
