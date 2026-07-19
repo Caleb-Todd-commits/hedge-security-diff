@@ -38,6 +38,12 @@ It verifies:
 - Legitimate upload behavior remaining functional after remediation.
 - Silence on the benign-refactor branch.
 
+## Real-repository smoke tests
+
+The candidate was installed without rebuilding into one public App Router repository, one public Pages API repository, and one public Express repository. No target dependencies were installed, no target code was executed, and no model call was made. All three documentation-only changes were silent. All three supported upload/storage changes produced deterministic findings linked to the exact added route and storage operation.
+
+The App Router and Pages API repositories reported partial coverage with specific diagnostics; the Express repository reported complete coverage. Exact source commits, entry-point counts, outcomes, and residual limitations are recorded in [REAL_REPOSITORY_VALIDATION.md](REAL_REPOSITORY_VALIDATION.md).
+
 ## Packaged result
 
 At packaging time:

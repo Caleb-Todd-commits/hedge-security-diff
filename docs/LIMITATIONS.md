@@ -2,6 +2,7 @@
 
 - Hedge supports a narrow TypeScript target: Next.js App Router, Next.js Pages API routes, basic Express, common Prisma, object-storage, network, workflow, and credential patterns.
 - Handler-scoped AST analysis is not complete interprocedural data flow. Same-file helper propagation and supported middleware are modeled, but imported helpers, decorators, generated routes, runtime-computed matchers, infrastructure policy, and deployment topology may remain unknown.
+- Source-only smoke tests on one App Router, one Pages API, and one Express repository confirmed framework detection, benign-change silence, and exact evidence for a supported storage change. The Next.js repositories also demonstrated the expected partial-coverage warnings for a complex middleware matcher and an unresolved imported authentication helper; these three tests are compatibility evidence, not a representative accuracy sample.
 - A detected control means relevant code is associated with the supported handler or middleware path; it does not prove semantic correctness, runtime reachability, or complete enforcement.
 - Working-tree collection refuses symlinks and out-of-root real paths. PR comparison instead reads bounded regular blobs directly from exact Git commits; the required base and head objects must exist in the local object database.
 - A surfaced risk is not an exploitability verdict.
