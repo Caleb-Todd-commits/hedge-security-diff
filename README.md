@@ -36,7 +36,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Approval-gated `@hedge fix HEDGE-NNN` example using an immutable `openai/codex-action` commit, an isolated patch artifact, normalized per-risk concurrency, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 254 unit, contract, replay, and schema tests.
+- 47-case deterministic DriftBench suite and 259 unit, contract, replay, and schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -261,7 +261,7 @@ See `docs/REPLAY.md`.
 
 ## Honest limitations
 
-The Build Week implementation is narrow by design: TypeScript, Next.js App Router, Next.js Pages API routes, basic Express, common Prisma/storage/network patterns, and same-repository PRs. It does not perform complete interprocedural data-flow analysis, prove deployment exposure, replace SAST/DAST or human review, or guarantee that Codex can safely repair every surfaced risk. The Codex and GitHub examples have been statically validated but cannot be claimed end-to-end against a live repository until installed with real credentials.
+The Build Week implementation is narrow by design: TypeScript, Next.js App Router, Next.js Pages API routes, basic Express, common Prisma/storage/network patterns, and same-repository PRs. It does not perform complete interprocedural data-flow analysis, prove deployment exposure, replace SAST/DAST or human review, or guarantee that Codex can safely repair every surfaced risk. A live judge-lab run proved the credential-separated `collect -> reason -> publish` path and recorded decision. A separate live run proved all four counterfactual verification requirements for one finding. Codex produced a bounded repair artifact, but its automated target-test and draft-publication path did not complete, so remediation publication remains experimental rather than being presented as a production guarantee.
 
 ## Documentation
 

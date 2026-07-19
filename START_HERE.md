@@ -22,7 +22,7 @@ npm run audit:high
 
 Current included validation target:
 
-- 258 unit, workflow-contract, replay, and schema tests.
+- 259 unit, workflow-contract, replay, and schema tests.
 - 47 deterministic DriftBench cases.
 - Next.js App Router routes, Pages API routes, middleware, Server Actions, Express ordering/scope, Prisma, GitHub workflow, policy, report, state-integrity, migration, and adversarial fixtures.
 - Demo repository branch materialization and counterfactual upload witness.
@@ -78,4 +78,4 @@ node hedge-v0.5.2/dist/cli/index.cjs init --configure
 
 ## Highest-value remaining work
 
-Publish the Action at an immutable commit, install it in a real GitHub repository, run repeated API-backed Luna/Sol evaluations, measure median/P95 usage and latency, and capture the full live sequence: security diff → `@hedge fix` → draft Codex PR → vulnerable witness → repaired witness blocked → architecture-control confirmation → reviewable verified-state PR.
+Human-review the frozen evaluation adjudication sheet, then publish the proven commit and immutable release artifacts. Do not rerun or tune against the frozen corpus: its recorded operational gate failed and is part of the release evidence.
