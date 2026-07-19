@@ -27,7 +27,9 @@ try {
   });
   const paths = await writeLiveEvalResults(outputDirectory, summary, authorization.forbiddenValues);
   console.log(renderLiveEvalSummary(summary));
-  console.log(`\nJSON: ${paths.jsonPath}\nMarkdown: ${paths.markdownPath}`);
+  console.log(
+    `\nJSON: ${paths.jsonPath}\nMarkdown: ${paths.markdownPath}\nAdjudication: ${paths.adjudicationPath}`
+  );
   if (!summary.operationalGatePassed) process.exitCode = 1;
 } catch (error) {
   console.error(
