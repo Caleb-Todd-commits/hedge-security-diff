@@ -5,7 +5,7 @@ import micromatch from "micromatch";
 import type { HedgeConfig } from "../domain/schemas.js";
 
 export const SOURCE_PATTERNS = [
-  "**/*.{ts,tsx,js,jsx,mjs,cjs}",
+  "**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
   "**/package.json",
   "**/schema.prisma",
   "**/*.{yml,yaml,json,toml}"

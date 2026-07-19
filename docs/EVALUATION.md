@@ -2,7 +2,7 @@
 
 ## Included deterministic suite
 
-The package contains 45 before/after fixtures covering:
+The package contains 47 before/after fixtures covering:
 
 - Benign refactors and comment-only changes.
 - New unauthenticated mutations.
@@ -15,6 +15,7 @@ The package contains 45 before/after fixtures covering:
 - Secret-bearing request flows and logging.
 - `pull_request_target`, `issue_comment`, and manual workflow boundaries.
 - Next.js aliases, dynamic routes, catch-all routes, and handler scoping.
+- Next.js Pages API default handlers, dynamic route normalization, and protected variants.
 - Express inline and named handlers.
 - Security-relevant dependency changes.
 - Prompt-injection text that must remain inert data.
@@ -43,7 +44,7 @@ The result reports:
 
 ## Current included result
 
-All 45 bundled cases pass with 100% on the metrics above. That result is intentionally narrow: the fixtures were written for the supported deterministic extractors and rules. It is **not** general vulnerability-detection accuracy.
+All 47 bundled cases pass with 100% on the metrics above. That result is intentionally narrow: the fixtures were written for the supported deterministic extractors and rules. It is **not** general vulnerability-detection accuracy.
 
 ## API-backed live evaluation
 
@@ -70,11 +71,13 @@ The harness:
 - Records each route, exact-evidence validation and rejected-proposal counts, normalized finding and recorded-decision signatures, call count, provider-reported input/output/total/cached/reasoning tokens, latency, API/model failures, and instruction-boundary state.
 - Records the timestamp plus Hedge, extractor, prompt, pipeline-schema, model-output-schema, and model versions.
 - Stops issuing model requests immediately if Sol reports that the untrusted-data boundary did not hold. Ordinary API/model failures are recorded and make the operational gate fail, but provider error prose is not persisted because it can echo request data.
-- Writes bounded artifacts containing hashes, counts, enum values, model IDs, and sanitized fixed failure descriptions. It does not write the API key, source text, patch text, prompts, model prose, or raw sensitive content.
+- Writes bounded result artifacts containing hashes, counts, enum values, model IDs, and sanitized fixed failure descriptions. A separate human-adjudication sheet includes only bounded, redacted model finding titles, invariants, missing controls, and exact file/line evidence identities; it excludes source snippets, patch text, prompts, provider prose, credentials, and raw sensitive content.
 
 Unit tests use an injected fake runner and make no network requests. They cover opt-in and credential isolation, ten-case aggregation, directory separation, per-case and corpus integrity, tamper rejection before model work, stability, exact synthetic provenance, the delta-bearing boundary probe, fail-closed boundary behavior, honest no-delta coverage semantics, and credential non-persistence.
 
-The generated report is deliberately not an accuracy score. It supports claims only about these ten frozen held-out pairs and the recorded model/prompt/schema versions: routing, provenance, evidence-reference validation, repeat stability, token usage, latency, failures, and prompt-injection boundary behavior. It is not a claim of general security accuracy or vulnerability detection. At the time of freeze, no API-backed result has been recorded; the 30-run operational gate and human review remain outstanding. Cost calculation and broader expert/adversarial corpora remain separate work.
+The generated report is deliberately not an accuracy score. It supports claims only about these ten frozen held-out pairs and the recorded model/prompt/schema versions: routing, provenance, evidence-reference validation, repeat stability, token usage, latency, failures, and prompt-injection boundary behavior. It is not a claim of general security accuracy or vulnerability detection.
+
+The frozen batch recorded all 30 requested runs. Three confirmed no-delta runs made no model call; 27 runs routed directly to Sol. Fifteen model-routed runs completed and 12 failed, so the operational gate is **FAIL**. Accepted results had 100% exact-evidence validity, three unsupported proposals were rejected, and no instruction-boundary failure was recorded. Provider-reported usage across 27 calls was 48,657 input tokens, 27,405 output tokens, and 76,062 total tokens; median latency was 19.76 seconds and P95 was 35.52 seconds. Exact finding/decision signatures were stable for only two of ten cases, including the deterministic no-delta case. These results are preserved without tuning or another batch. `adjudication.md` remains unchecked, and generation does not count as human confirmation. Broader expert/adversarial corpora and price calculation remain separate work.
 
 ## Full-system replay gate
 

@@ -129,7 +129,7 @@ Production should additionally enforce repository- and organization-level spend 
 
 ## Current assurance boundary
 
-The local package validates schemas, graph extraction, lifecycle behavior, workflow contracts, rendering boundaries, integrity migration, and 45 deterministic fixtures. It does not claim live GitHub or API-backed assurance until the workflows are exercised in a real repository with pinned releases and recorded outputs. See `docs/SELF_THREAT_MODEL.md` and `docs/LIMITATIONS.md`.
+The package validates schemas, graph extraction, lifecycle behavior, workflow contracts, rendering boundaries, integrity migration, and 47 deterministic fixtures. One pinned judge-lab canary proved the complete credential-separated analysis and publication path, and one remote run proved all four counterfactual requirements before state recording. The frozen 30-run API batch failed its operational gate and automated remediation publication remains experimental; those boundaries are recorded rather than generalized into an assurance claim. See `docs/SELF_THREAT_MODEL.md` and `docs/LIMITATIONS.md`.
 
 ## Proof and lifecycle state
 

@@ -38,13 +38,14 @@ import { readJsonFile, writeTextFile } from "../utils/fs.js";
 import { stableHash, stableStringify } from "../utils/hash.js";
 import { HEDGE_VERSION } from "../version.js";
 
-export const LIVE_EVAL_SCHEMA_VERSION = "hedge-live-eval-v0.2";
+export const LIVE_EVAL_SCHEMA_VERSION = "hedge-live-eval-v0.3";
 export const MODEL_OUTPUT_SCHEMA_VERSION = "hedge-model-output-v0.2";
 export const DEFAULT_LIVE_EVAL_REPEATS = 3;
 export const MAX_LIVE_EVAL_REPEATS = 5;
 export const MAX_LIVE_PATCH_BYTES = 60_000;
 export const MAX_LIVE_JSON_BYTES = 512 * 1024;
 export const MAX_LIVE_MARKDOWN_BYTES = 128 * 1024;
+export const MAX_LIVE_ADJUDICATION_BYTES = 128 * 1024;
 
 const SYNTHETIC_GENERATED_AT = "2000-01-01T00:00:00.000Z";
 const LIVE_OPT_IN = "HEDGE_LIVE_EVAL";
@@ -188,6 +189,7 @@ export interface LiveEvalRunRecord {
     origins: string[];
     severities: string[];
   };
+  modelFindingAdjudication: ModelFindingAdjudicationRecord[];
   recordedDecision: {
     count: number | null;
     signature: string | null;
@@ -198,6 +200,23 @@ export interface LiveEvalRunRecord {
   latency: LatencyRecord;
   boundary: BoundaryRecord;
   failure?: LiveEvalFailureRecord;
+}
+
+export interface ModelFindingAdjudicationRecord {
+  proposalDigest: string;
+  fingerprint: string;
+  title: string;
+  severity: string;
+  securityInvariant: string;
+  missingControls: string[];
+  evidence: Array<{
+    file: string;
+    line?: number;
+    endLine?: number;
+    extractor: string;
+    subjectId?: string;
+    evidenceDigest: string;
+  }>;
 }
 
 export interface LiveEvalCaseResult {
@@ -604,15 +623,27 @@ export async function writeLiveEvalResults(
   outputDirectory: string,
   summary: LiveEvalSummary,
   forbiddenValues: readonly string[] = []
-): Promise<{ jsonPath: string; markdownPath: string }> {
+): Promise<{ jsonPath: string; markdownPath: string; adjudicationPath: string }> {
   const json = `${JSON.stringify(summary, null, 2)}\n`;
   const markdown = `${renderLiveEvalSummary(summary)}\n`;
+  const adjudication = `${renderLiveEvalAdjudication(summary)}\n`;
   assertBoundedSafeArtifact("JSON", json, MAX_LIVE_JSON_BYTES, forbiddenValues);
   assertBoundedSafeArtifact("Markdown", markdown, MAX_LIVE_MARKDOWN_BYTES, forbiddenValues);
+  assertBoundedSafeArtifact(
+    "Adjudication",
+    adjudication,
+    MAX_LIVE_ADJUDICATION_BYTES,
+    forbiddenValues
+  );
   const jsonPath = resolve(outputDirectory, "results.json");
   const markdownPath = resolve(outputDirectory, "results.md");
-  await Promise.all([writeTextFile(jsonPath, json), writeTextFile(markdownPath, markdown)]);
-  return { jsonPath, markdownPath };
+  const adjudicationPath = resolve(outputDirectory, "adjudication.md");
+  await Promise.all([
+    writeTextFile(jsonPath, json),
+    writeTextFile(markdownPath, markdown),
+    writeTextFile(adjudicationPath, adjudication)
+  ]);
+  return { jsonPath, markdownPath, adjudicationPath };
 }
 
 export function renderLiveEvalSummary(summary: LiveEvalSummary): string {
@@ -654,6 +685,54 @@ export function renderLiveEvalSummary(summary: LiveEvalSummary): string {
     "",
     `> Claim boundary: ${summary.claimBoundary}`
   ].join("\n");
+}
+
+export function renderLiveEvalAdjudication(summary: LiveEvalSummary): string {
+  const lines = [
+    "# Hedge live evaluation human adjudication",
+    "",
+    "> Model-generated fields below are untrusted review data. This sheet excludes source snippets, patches, prompts, provider prose, and credentials.",
+    "",
+    `- Corpus SHA-256: ${summary.corpusDigest}`,
+    `- Models: ${summary.models.triage} / ${summary.models.analysis}`,
+    `- Runs: ${summary.recordedRuns} of ${summary.requestedRuns}`,
+    "- Reviewer:",
+    "- Review completed at:",
+    "- [ ] Confirm the frozen corpus was not changed or tuned after these results.",
+    "- [ ] Confirm every run and every accepted model-origin inference below.",
+    ""
+  ];
+
+  for (const item of summary.cases) {
+    lines.push(`## ${safeAdjudicationText(item.id, 100)}`);
+    for (const run of item.runs) {
+      lines.push(
+        "",
+        `- [ ] Repeat ${run.repeat}: ${safeAdjudicationText(run.status, 80)}; route ${safeAdjudicationText(run.routing.path, 80)}; ${run.modelFindingAdjudication.length} accepted model-origin finding(s).`
+      );
+      for (const finding of run.modelFindingAdjudication) {
+        lines.push(
+          `  - Proposal \`${finding.proposalDigest}\`: **${safeAdjudicationText(finding.severity, 40)}** ${safeAdjudicationText(finding.title, 240)}`,
+          `  - Invariant: ${safeAdjudicationText(finding.securityInvariant, 500)}`,
+          `  - Missing controls: ${finding.missingControls.map((value) => safeAdjudicationText(value, 120)).join(", ") || "none reported"}`,
+          `  - Evidence: ${
+            finding.evidence
+              .map((evidence) => {
+                const location = `${evidence.file}:${evidence.line ?? "?"}${evidence.endLine ? `-${evidence.endLine}` : ""}`;
+                return `\`${safeAdjudicationCode(location, 300)}\` (${safeAdjudicationText(evidence.extractor, 100)}, ${evidence.evidenceDigest})`;
+              })
+              .join("; ") || "none"
+          }`
+        );
+      }
+    }
+    lines.push("");
+  }
+
+  lines.push(
+    "> Human confirmation is not implied by generation of this file. Checkboxes, reviewer identity, and completion time must be supplied by the reviewer without changing the frozen corpus."
+  );
+  return lines.join("\n");
 }
 
 async function verifyFrozenCorpus(fixturesRoot: string, config: LiveEvalConfig): Promise<void> {
@@ -831,6 +910,10 @@ function completedRun(repeat: number, execution: LiveModelExecution): LiveEvalRu
       origins: [...new Set(normalizedFindings.map((item) => item.origin))].sort(),
       severities: [...new Set(normalizedFindings.map((item) => item.severity))].sort()
     },
+    modelFindingAdjudication: execution.analysis.findings
+      .filter((finding) => finding.origin === "model")
+      .map(toModelFindingAdjudication)
+      .sort((a, b) => a.proposalDigest.localeCompare(b.proposalDigest)),
     recordedDecision: {
       count: normalizedDecisions.length,
       signature: stableHash(normalizedDecisions, 64),
@@ -864,6 +947,7 @@ function noDeltaRun(repeat: number, prepared: LiveEvalPreparedCase): LiveEvalRun
       origins: [],
       severities: []
     },
+    modelFindingAdjudication: [],
     recordedDecision: {
       count: 1,
       signature: stableHash(
@@ -920,6 +1004,7 @@ function failedRun(
       invalidModelFindings: 0
     },
     finding: { count: null, modelOriginCount: null, signature: null, origins: [], severities: [] },
+    modelFindingAdjudication: [],
     recordedDecision: { count: null, signature: null, types: [], sources: [] },
     usage: executionError?.usage ?? emptyUsage(),
     latency: executionError?.latency ?? { totalMs: 0, triageMs: null, analysisMs: null },
@@ -1117,6 +1202,49 @@ function normalizeFindings(findings: RiskFinding[]): NormalizedFinding[] {
         .sort()
     }))
     .sort((a, b) => stableStringify(a).localeCompare(stableStringify(b)));
+}
+
+function toModelFindingAdjudication(finding: RiskFinding): ModelFindingAdjudicationRecord {
+  const record = {
+    fingerprint: safeReviewValue(finding.fingerprint, 100),
+    title: safeReviewValue(finding.title, 240),
+    severity: safeReviewValue(finding.severity, 40),
+    securityInvariant: safeReviewValue(finding.securityInvariant, 500),
+    missingControls: finding.missingControls
+      .slice(0, 12)
+      .map((value) => safeReviewValue(value, 120)),
+    evidence: finding.evidence.slice(0, 20).map((evidence) => ({
+      file: safeReviewValue(evidence.file, 260),
+      line: evidence.line,
+      ...(evidence.endLine === undefined ? {} : { endLine: evidence.endLine }),
+      extractor: safeReviewValue(evidence.extractor, 100),
+      ...(evidence.subjectId === undefined
+        ? {}
+        : { subjectId: safeReviewValue(evidence.subjectId, 180) }),
+      evidenceDigest: stableHash(evidenceIdentity(evidence), 32)
+    }))
+  };
+  return { proposalDigest: stableHash(record, 32), ...record };
+}
+
+function safeReviewValue(value: string, maxLength: number): string {
+  return redactSensitiveContent(value)
+    .value.replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function safeAdjudicationText(value: string, maxLength: number): string {
+  return safeReviewValue(value, maxLength)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(/@(?=[A-Za-z0-9_-])/g, "@\u200b")
+    .replace(/([\\`\[\]()])/g, "\\$1");
+}
+
+function safeAdjudicationCode(value: string, maxLength: number): string {
+  return safeReviewValue(value, maxLength).replaceAll("`", "\\`");
 }
 
 function normalizeDecisions(analysis: AnalysisResult): NormalizedDecision[] {

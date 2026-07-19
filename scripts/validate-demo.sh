@@ -42,11 +42,20 @@ node "$root/dist/cli/index.cjs" check \
   --offline \
   --json "$demo/benign.json" >/dev/null
 
-node - "$demo/risk.json" "$demo/benign.json" "$demo/vulnerable-witness.json" "$demo/repaired-witness.json" "$demo/vulnerable-witness.sha256" "$demo/repaired-witness.sha256" <<'NODE'
+git switch demo/06-pages-api-upload >/dev/null
+node "$root/dist/cli/index.cjs" check \
+  --root . \
+  --base main \
+  --head demo/06-pages-api-upload \
+  --offline \
+  --json "$demo/pages-api.json" >/dev/null
+
+node - "$demo/risk.json" "$demo/benign.json" "$demo/pages-api.json" "$demo/vulnerable-witness.json" "$demo/repaired-witness.json" "$demo/vulnerable-witness.sha256" "$demo/repaired-witness.sha256" <<'NODE'
 const fs = require("node:fs");
-const [riskPath, benignPath, vulnerablePath, repairedPath, vulnerableDigestPath, repairedDigestPath] = process.argv.slice(2);
+const [riskPath, benignPath, pagesApiPath, vulnerablePath, repairedPath, vulnerableDigestPath, repairedDigestPath] = process.argv.slice(2);
 const risk = JSON.parse(fs.readFileSync(riskPath, "utf8"));
 const benign = JSON.parse(fs.readFileSync(benignPath, "utf8"));
+const pagesApi = JSON.parse(fs.readFileSync(pagesApiPath, "utf8"));
 const vulnerable = JSON.parse(fs.readFileSync(vulnerablePath, "utf8"));
 const repaired = JSON.parse(fs.readFileSync(repairedPath, "utf8"));
 const vulnerableDigest = fs.readFileSync(vulnerableDigestPath, "utf8");
@@ -58,6 +67,12 @@ if (surfaceChanged(risk) !== true || findings(risk).length === 0) {
 }
 if (surfaceChanged(benign) !== false || findings(benign).length !== 0) {
   throw new Error("The benign demo branch did not remain silent.");
+}
+if (
+  surfaceChanged(pagesApi) !== true ||
+  !findings(pagesApi).some((finding) => finding.entryPoint === "ANY /api/files/upload")
+) {
+  throw new Error("The Pages API demo branch did not produce exact default-handler evidence.");
 }
 if (vulnerableDigest !== repairedDigest) {
   throw new Error("The vulnerable and repaired demo did not execute identical witness bytes.");

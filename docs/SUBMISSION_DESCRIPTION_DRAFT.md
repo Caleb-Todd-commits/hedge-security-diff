@@ -26,4 +26,4 @@ GPT-5.6 Sol helped develop the initial project foundation in ChatGPT. Inside Hed
 
 ## Honest limitations
 
-The Build Week version supports a narrow TypeScript/Next.js surface and same-repository pull requests. It is not a SAST replacement and does not claim exploitability without execution evidence. Deployment facts it cannot observe remain explicitly unknown.
+The Build Week version supports a narrow TypeScript/Next.js surface, including App Router handlers and Pages API routes, plus same-repository pull requests. It is not a SAST replacement and does not claim exploitability without execution evidence. Deployment facts it cannot observe remain explicitly unknown.

@@ -42,4 +42,7 @@ mkdir -p "$install_root/nested/project"
 [[ -f examples/demo-output/security-diff.html ]]
 [[ -f examples/demo-output/results.sarif ]]
 
+node scripts/package-release.mjs >/dev/null
+node scripts/validate-packaged-release.mjs >/dev/null
+
 echo "Hedge release validation passed."

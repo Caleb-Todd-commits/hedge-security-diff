@@ -176,7 +176,8 @@ jobs:
           output-file: .hedge/codex-final.md
           sandbox: workspace-write
           safety-strategy: drop-sudo
-          codex-args: '["--ephemeral", "--ignore-user-config"]'
+          # Preserve the Action-managed Responses API proxy configuration.
+          codex-args: '["--ephemeral"]'
 
       - name: Capture and bind patch without credentials
         if: always()
@@ -333,7 +334,6 @@ jobs:
         if: hashFiles('package.json') != ''
         with:
           node-version: 22
-          cache: npm
       - name: Install without lifecycle scripts and validate without network
         if: hashFiles('package.json') != ''
         timeout-minutes: 10

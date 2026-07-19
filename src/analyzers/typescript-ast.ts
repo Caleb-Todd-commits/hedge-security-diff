@@ -127,6 +127,24 @@ export function extractTypeScriptFacts(file: SourceFile, framework: string): Ast
     }
   }
 
+  if (framework === "nextjs" && /(^|\/)pages\/api\/.+\.[cm]?[jt]sx?$/.test(file.path)) {
+    for (const statement of source.statements) {
+      const pages = nextPagesApiHandler(statement, functions, source);
+      if (!pages?.node) continue;
+      const analysis = analyzeHandler(pages.node, source, functions);
+      entrypoints.push({
+        framework: "nextjs",
+        method: "ANY",
+        path: nextPagesApiPath(file.path),
+        line: lineOf(source, pages.node),
+        controls: dedupeControls([...pages.wrapperControls, ...analysis.controls]),
+        operations: analysis.operations,
+        secrets: analysis.secrets,
+        handlerName: pages.name
+      });
+    }
+  }
+
   if (framework === "nextjs") {
     const moduleServerAction = hasUseServerDirective(source.statements);
     for (const statement of source.statements) {
@@ -274,6 +292,51 @@ function nextRouteHandler(
   return null;
 }
 
+function nextPagesApiHandler(
+  statement: ts.Statement,
+  functions: Map<string, ts.FunctionLikeDeclaration>,
+  source: ts.SourceFile
+): { node?: ts.FunctionLikeDeclaration; name?: string; wrapperControls: AstControl[] } | null {
+  if (
+    ts.isFunctionDeclaration(statement) &&
+    hasExportModifier(statement) &&
+    hasDefaultModifier(statement)
+  ) {
+    return {
+      node: statement,
+      name: statement.name?.text ?? "default",
+      wrapperControls: []
+    };
+  }
+
+  if (ts.isExportAssignment(statement)) {
+    const resolution = resolveHandler(statement.expression, functions, source);
+    return {
+      node: resolution.node,
+      name: resolution.displayName ?? "default",
+      wrapperControls: resolution.wrapperControls
+    };
+  }
+
+  if (
+    ts.isExportDeclaration(statement) &&
+    statement.exportClause &&
+    ts.isNamedExports(statement.exportClause)
+  ) {
+    for (const element of statement.exportClause.elements) {
+      if (element.name.text !== "default") continue;
+      const localName = element.propertyName?.text ?? element.name.text;
+      return {
+        node: functions.get(localName),
+        name: localName,
+        wrapperControls: []
+      };
+    }
+  }
+
+  return null;
+}
+
 function nextServerActionHandler(
   statement: ts.Statement,
   functions: Map<string, ts.FunctionLikeDeclaration>,
@@ -318,6 +381,13 @@ function hasUseServerDirective(statements: readonly ts.Statement[]): boolean {
       ts.isExpressionStatement(statement) &&
       ts.isStringLiteralLike(statement.expression) &&
       statement.expression.text === "use server"
+  );
+}
+
+function hasDefaultModifier(node: ts.Node): boolean {
+  return Boolean(
+    ts.canHaveModifiers(node) &&
+    ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
   );
 }
 
@@ -1243,7 +1313,20 @@ function nextRoutePath(path: string): string {
   const appIndex = normalized.indexOf("app/");
   const route = appIndex >= 0 ? normalized.slice(appIndex + 4) : normalized;
   const withoutFile = route.replace(/\/route\.[jt]sx?$/, "");
-  const cleaned = withoutFile
+  return normalizeNextPath(withoutFile);
+}
+
+function nextPagesApiPath(path: string): string {
+  const normalized = path.replaceAll("\\", "/");
+  const pagesApiIndex = normalized.indexOf("pages/api/");
+  const route = pagesApiIndex >= 0 ? normalized.slice(pagesApiIndex + 6) : normalized;
+  const withoutExtension = route.replace(/\.[cm]?[jt]sx?$/, "");
+  const withoutIndex = withoutExtension.replace(/(?:^|\/)index$/, "");
+  return normalizeNextPath(withoutIndex);
+}
+
+function normalizeNextPath(path: string): string {
+  const cleaned = path
     .split("/")
     .filter((segment) => !/^\(.+\)$/.test(segment))
     .map((segment) =>

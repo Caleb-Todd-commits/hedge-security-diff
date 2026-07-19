@@ -17,7 +17,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 
 - `hedge install`, `hedge doctor`, `hedge init`, `hedge context`, `hedge check`, `hedge explain`, `hedge history`, `hedge witness`, `hedge bundle`, `hedge verify-bundle`, `hedge status`, `hedge prune`, `hedge verify`, `hedge fix-plan`, `hedge replay`, and `hedge eval`.
 - Node 24 GitHub Action bundle and Node 22 CLI bundle.
-- Handler-scoped TypeScript AST extraction for Next.js App Router, exported Server Actions, Next.js middleware matchers, and basic Express routing.
+- Handler-scoped TypeScript AST extraction for Next.js App Router, Pages Router API routes, exported Server Actions, Next.js middleware matchers, and basic Express routing.
 - Dynamic, required catch-all, optional catch-all, and route-group normalization; exported aliases; inline/named handlers; custom Express router receivers; and order/path-aware middleware.
 - Evidence-linked routes and Server Actions, authentication, authorization, ownership, validation, rate limits, upload limits, database operations, object storage, external calls, command execution, logging, environment credentials, workflows, dependencies, and Prisma models.
 - Stable attack-surface graph and Mermaid rendering with red risk paths, amber additions, and green verified paths.
@@ -36,7 +36,7 @@ Hedge **surfaces attack-surface changes and design risks**. It does not claim to
 - Approval-gated `@hedge fix HEDGE-NNN` example using an immutable `openai/codex-action` commit, an isolated patch artifact, normalized per-risk concurrency, and a separate draft-PR publishing job.
 - Secretless counterfactual verification workflow that records executable evidence through the published Action and opens a reviewable state PR.
 - Reviewable post-merge model-refresh PR workflow.
-- 45-case deterministic DriftBench suite and 254 unit, contract, replay, and schema tests.
+- 47-case deterministic DriftBench suite and 259 unit, contract, replay, and schema tests.
 - A materialized demo repository with prepared Git branches and a real before/after upload witness.
 - Standalone interactive HTML dashboard, Markdown report, SARIF 2.1.0, machine-readable delta/analysis JSON, and GitHub annotations.
 - Organization-defined deterministic architecture policies in trusted `.hedge.yml`.
@@ -64,15 +64,29 @@ Supported judge platform: macOS or Linux with Node.js 22 or newer and Git. The G
 
 ### Install into a repository
 
-Install Hedge into another repository after publishing and pinning the Action:
+Download the prebuilt release bundle; no clone, dependency install, or rebuild is required:
 
 ```bash
-hedge install --action-ref OWNER/REPOSITORY@FULL_40_CHARACTER_COMMIT_SHA --full
-hedge doctor
-hedge init --configure
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/hedge-v0.5.2-bundles.zip
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/hedge-v0.5.2-SHA256SUMS
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/manifest.json
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/security-diff.html
+shasum -a 256 -c hedge-v0.5.2-SHA256SUMS
+unzip hedge-v0.5.2-bundles.zip
+node hedge-v0.5.2/dist/cli/index.cjs install \
+  --action-ref Caleb-Todd-commits/hedge-security-diff@FULL_40_CHARACTER_COMMIT_SHA \
+  --full
+node hedge-v0.5.2/dist/cli/index.cjs doctor
+node hedge-v0.5.2/dist/cli/index.cjs init --configure
 ```
 
-Replace the placeholder with the immutable commit SHA of the published green release.
+Replace the placeholder with the immutable commit SHA displayed in the v0.5.2 release. Linux users can verify with `sha256sum -c` instead of `shasum -a 256 -c`.
+
+### Try Hedge on your repo
+
+Use a same-repository TypeScript pull request that changes a supported security architecture surface. The strongest current targets are Next.js App Router route handlers, Next.js Pages API routes, basic Express routes, Prisma/storage/network operations, GitHub workflow authority changes, and authentication, authorization, ownership, validation, rate-limit, size-limit, and content-type controls.
+
+For a fast judge smoke test, open a branch in a compatible repository that adds a public API route which writes uploaded content to object storage. Hedge should report the new entry point, trust-boundary crossing, storage write, missing upload controls, exact evidence, and coverage state. If the repository is outside the supported surface, `hedge doctor` and the run coverage disclose that instead of asking GPT-5.6 to guess.
 
 Develop from this source package:
 
@@ -247,7 +261,7 @@ See `docs/REPLAY.md`.
 
 ## Honest limitations
 
-The Build Week implementation is narrow by design: TypeScript, Next.js App Router, basic Express, common Prisma/storage/network patterns, and same-repository PRs. It does not perform complete interprocedural data-flow analysis, prove deployment exposure, replace SAST/DAST or human review, or guarantee that Codex can safely repair every surfaced risk. The Codex and GitHub examples have been statically validated but cannot be claimed end-to-end against a live repository until installed with real credentials.
+The Build Week implementation is narrow by design: TypeScript, Next.js App Router, Next.js Pages API routes, basic Express, common Prisma/storage/network patterns, and same-repository PRs. It does not perform complete interprocedural data-flow analysis, prove deployment exposure, replace SAST/DAST or human review, or guarantee that Codex can safely repair every surfaced risk. A live judge-lab run proved the credential-separated `collect -> reason -> publish` path and recorded decision. A separate live run proved all four counterfactual verification requirements for one finding. Codex produced a bounded repair artifact, but its automated target-test and draft-publication path did not complete, so remediation publication remains experimental rather than being presented as a production guarantee.
 
 ## Documentation
 

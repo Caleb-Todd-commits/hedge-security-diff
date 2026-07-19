@@ -1,5 +1,9 @@
 import { writeFileSync } from "node:fs";
-import { evaluateUpload } from "../lib/upload-policy.js";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const policyUrl = pathToFileURL(resolve(process.cwd(), "lib/upload-policy.js")).href;
+const { evaluateUpload } = await import(policyUrl);
 
 const result = evaluateUpload({
   authenticated: false,

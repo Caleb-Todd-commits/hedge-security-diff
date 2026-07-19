@@ -1,6 +1,12 @@
-import { readFile, readdir } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { copyFile, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import YAML from "yaml";
+
+const execFileAsync = promisify(execFile);
 
 describe("example workflow security contracts", () => {
   it("keeps Codex remediation and publishing in separate jobs", async () => {
@@ -31,12 +37,23 @@ describe("example workflow security contracts", () => {
     expect(workflow.jobs.remediate.permissions.contents).toBe("read");
     expect(workflow.jobs["validate-patch"].permissions.contents).toBe("read");
     expect(workflow.jobs["publish-draft"].permissions.contents).toBe("write");
+    const codexStep = workflow.jobs.remediate.steps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("openai/codex-action@")
+    );
+    expect(codexStep.with["openai-api-key"]).toBe("${{ secrets.OPENAI_API_KEY }}");
+    expect(codexStep.with["codex-args"]).toBe('["--ephemeral"]');
+    expect(JSON.stringify(codexStep)).not.toContain("--ignore-user-config");
+    const setupNode = workflow.jobs["validate-patch"].steps.find((step: { uses?: string }) =>
+      step.uses?.startsWith("actions/setup-node@")
+    );
+    expect(setupNode.with.cache).toBeUndefined();
     expect(JSON.stringify(workflow.jobs["validate-patch"])).not.toContain("OPENAI_API_KEY");
     expect(JSON.stringify(workflow.jobs["publish-draft"])).not.toContain("OPENAI_API_KEY");
   });
 
   it("runs immutable-witness verification without an OpenAI credential", async () => {
     const text = await readFile("examples/workflows/hedge-verify.yml", "utf8");
+    const workflow = YAML.parse(text);
     expect(text).not.toContain("OPENAI_API_KEY");
     expect(text).toContain("vulnerableRevisionWitnessSucceeded");
     expect(text).toContain("repairedRevisionWitnessBlocked");
@@ -47,6 +64,26 @@ describe("example workflow security contracts", () => {
     expect(text).toContain("architectureEvidence");
     expect(text).toContain("--network none");
     expect(text).not.toContain("architecture_control_changed");
+    for (const jobName of ["witness-counterfactual", "legitimate-behavior"]) {
+      const setupNode = workflow.jobs[jobName].steps.find((step: { uses?: string }) =>
+        step.uses?.startsWith("actions/setup-node@")
+      );
+      expect(setupNode.with.cache).toBeUndefined();
+    }
+  });
+
+  it("keeps the demo witness executable after sealing it outside the checkout", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "hedge-sealed-witness-"));
+    try {
+      const sealed = join(temporary, "witness.mjs");
+      await copyFile("examples/demo-notes/scripts/witness.mjs", sealed);
+      const { stdout } = await execFileAsync(process.execPath, [sealed], {
+        cwd: "examples/demo-notes"
+      });
+      expect(JSON.parse(stdout)).toMatchObject({ outcome: "blocked-by-control" });
+    } finally {
+      await rm(temporary, { recursive: true, force: true });
+    }
   });
 
   it("binds verification state to the protected default branch and an immutable runtime", async () => {

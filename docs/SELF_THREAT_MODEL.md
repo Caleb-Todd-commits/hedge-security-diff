@@ -49,9 +49,9 @@ flowchart LR
 - Model text is never interpolated directly into a shell command.
 - Adversarial fixtures confirm instruction-like strings remain data in the deterministic path.
 
-**Residual risk:** Delimiters and prompting do not prove immunity. Repeated API-backed adversarial evaluation remains required.
+**Residual risk:** Delimiters and prompting do not prove immunity. The frozen boundary probe held in three runs, but broader API-backed adversarial evaluation remains required.
 
-**Status:** Controls implemented; live repeated model evaluation remains open.
+**Status:** Controls implemented; one frozen repeated boundary probe passed, while the overall live operational gate failed.
 
 ## HEDGE-SELF-002 — Secret exfiltration from a pull-request workflow
 
@@ -69,9 +69,9 @@ flowchart LR
 - Verification has no OpenAI credential or repository-write token.
 - Remediation transfers a binary patch from the Codex job to a separate publisher job.
 
-**Residual risk:** The example workflows still require live repository validation, immutable release pinning, and production workload-identity setup.
+**Residual risk:** The live canary covers one same-repository path. Immutable final release pinning, fork-safe operation, and production workload identity remain open.
 
-**Status:** Hackathon architecture implemented and contract-tested; live GitHub validation remains open.
+**Status:** Hackathon architecture implemented, contract-tested, and proven through one credential-separated live canary.
 
 ## HEDGE-SELF-003 — False verification
 
@@ -90,7 +90,7 @@ flowchart LR
 
 **Residual risk:** Arbitrary repositories may need project-specific witness adapters and human review of the claimed invariant.
 
-**Status:** Lifecycle, CLI, workflow example, and executable demo are implemented; live remote verification remains open.
+**Status:** Lifecycle, CLI, workflow example, and executable demo are implemented; one live remote finding passed all four requirements and was recorded as verified.
 
 ## HEDGE-SELF-004 — Model-driven command injection
 
@@ -107,7 +107,7 @@ flowchart LR
 
 **Residual risk:** Codex may still create an incorrect patch; maintainer review and counterfactual verification remain mandatory.
 
-**Status:** End-to-end workflow design is implemented and statically tested; live Codex execution remains open.
+**Status:** Live Codex patch production succeeded. Automated target validation did not complete, so publication and verification remain experimental.
 
 ## HEDGE-SELF-005 — State poisoning
 

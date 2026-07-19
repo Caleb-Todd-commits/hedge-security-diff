@@ -51,6 +51,12 @@ await branchFrom(
   "05-injection-attempt",
   "test: add adversarial repository content"
 );
+await branchFrom(
+  "main",
+  "demo/06-pages-api-upload",
+  "06-pages-api-upload",
+  "feat: add Pages API file upload endpoint"
+);
 run("git", ["switch", "main"]);
 console.log(`Created demo repository at ${target}`);
 console.log("Branches:");

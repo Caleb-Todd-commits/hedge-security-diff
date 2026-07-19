@@ -1,6 +1,6 @@
 {
-  "total": 45,
-  "passed": 45,
+  "total": 47,
+  "passed": 47,
   "failed": 0,
   "benignSilenceRate": 1,
   "surfaceChangeRecall": 1,
@@ -806,6 +806,40 @@
           "New outbound request uses a dynamic destination without a detected allowlist",
           "Public entry point passes request-influenced data to privileged code or command execution"
         ]
+      },
+      "errors": []
+    },
+    {
+      "name": "046-pages-api-upload",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "minimumFindings": 1,
+        "expectedSeverities": ["high"],
+        "expectedTitlesContain": ["storage write"]
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 1,
+        "severities": ["high"],
+        "titles": ["New storage write crosses a trust boundary without complete upload controls"]
+      },
+      "errors": []
+    },
+    {
+      "name": "047-pages-api-protected",
+      "passed": true,
+      "stable": true,
+      "expected": {
+        "surfaceChanged": true,
+        "maximumFindings": 0
+      },
+      "actual": {
+        "surfaceChanged": true,
+        "findings": 0,
+        "severities": [],
+        "titles": []
       },
       "errors": []
     }

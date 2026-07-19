@@ -23,17 +23,8 @@ The example `@hedge fix HEDGE-NNN` workflow:
 9. Revalidates the current PR head in a separate write-authorized job and opens at most one draft PR against the original PR branch.
 10. Requires immutable-witness counterfactual verification before closure.
 
-## Remaining live proof
+## Live proof status
 
-Before recording, install the workflows in the demo repository and capture:
+The judge-lab repository now records the original security diff, benign silence with zero model calls, an authorized fix command, and successful source-bound Codex patch production. Automated remediation validation stopped on the fixture's pre-existing empty Vitest suite, so the exact patch was recovered as an explicitly experimental draft without another model call.
 
-- Original Hedge security diff.
-- Authorized fix command.
-- Codex draft remediation PR.
-- Witness success on the vulnerable revision.
-- Witness blocked on the repaired revision.
-- Legitimate behavior passing.
-- Updated graph/control state.
-- Benign PR silence.
-
-Do not claim the live sequence until it has actually run.
+Counterfactual verification run `29705400423` passed vulnerable witness reproduction, repaired witness blocking, legitimate behavior, and an evidence-linked architecture control change. Reviewable state PR 8 recorded HEDGE-009 as `verified` on protected `main`. Treat this as one proven canary, not a guarantee that arbitrary witnesses or repairs will pass.

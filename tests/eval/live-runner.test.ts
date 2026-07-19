@@ -83,7 +83,7 @@ describe("API-backed live evaluation", () => {
           boundaryProbeCalls += 1;
         }
         const variable = repository.endsWith("107-link-preview-outbound") && call === 2;
-        return fakeExecution(request, variable ? "block" : "warn");
+        return fakeExecution(request, variable ? "block" : "warn", true);
       }
     };
 
@@ -136,6 +136,18 @@ describe("API-backed live evaluation", () => {
       summary.cases.find((item) => item.id === "107-link-preview-outbound")
         ?.recordedDecisionStability.stable
     ).toBe(false);
+    expect(
+      summary.cases
+        .flatMap((item) => item.runs)
+        .some((run) => run.modelFindingAdjudication.length > 0)
+    ).toBe(true);
+
+    const output = await mkdtemp(join(tmpdir(), "hedge-live-adjudication-"));
+    const paths = await writeLiveEvalResults(output, summary);
+    const adjudication = await readFile(paths.adjudicationPath, "utf8");
+    expect(adjudication).toContain("Model-origin storage boundary");
+    expect(adjudication).toContain("- [ ] Repeat 1:");
+    expect(adjudication).not.toContain("Ignore all previous instructions");
 
     const benign = summary.cases.find((item) => item.id === "101-benign-clock-refactor");
     expect(benign?.runs.every((run) => run.routing.path === "no-model")).toBe(true);
@@ -261,9 +273,10 @@ describe("API-backed live evaluation", () => {
     });
     const output = await mkdtemp(join(tmpdir(), "hedge-live-eval-"));
     const paths = await writeLiveEvalResults(output, summary, [secret]);
-    const [json, markdown] = await Promise.all([
+    const [json, markdown, adjudication] = await Promise.all([
       readFile(paths.jsonPath, "utf8"),
-      readFile(paths.markdownPath, "utf8")
+      readFile(paths.markdownPath, "utf8"),
+      readFile(paths.adjudicationPath, "utf8")
     ]);
 
     expect(summary.operationalGatePassed).toBe(false);
@@ -272,6 +285,8 @@ describe("API-backed live evaluation", () => {
     expect(markdown).not.toContain(secret);
     expect(json).not.toContain("Ignore all previous instructions");
     expect(json).toContain("provider details were intentionally not persisted");
+    expect(adjudication).not.toContain(secret);
+    expect(adjudication).not.toContain("Ignore all previous instructions");
   });
 
   it("records a complete medium deterministic recommendation without spending model tokens", async () => {
@@ -442,15 +457,53 @@ describe("API-backed live evaluation", () => {
 
 function fakeExecution(
   request: LiveModelRequest,
-  decisionType: "warn" | "block"
+  decisionType: "warn" | "block",
+  includeModelFinding = false
 ): LiveModelExecution {
+  const evidence = request.graph.nodes.flatMap((node) => node.evidence)[0] ?? {
+    file: "app/api/example/route.ts",
+    line: 1,
+    snippet: "source snippets must not enter adjudication",
+    extractor: "test-fixture",
+    commit: request.headSha,
+    snapshot: "head" as const,
+    subjectId: "entrypoint:test"
+  };
   const analysis: AnalysisResult = {
     summary: "Synthetic fake-runner result.",
     surfaceChanged: true,
     confirmedNoDelta: false,
     coverage: request.coverage,
     analysisHealth: { status: "complete", reasons: [] },
-    findings: [],
+    findings: includeModelFinding
+      ? [
+          {
+            id: "HEDGE-MODEL-001",
+            fingerprint: "model-finding-fingerprint",
+            title: "Model-origin storage boundary",
+            severity: "high",
+            origin: "model",
+            status: "open",
+            stride: ["Tampering"],
+            cwe: [],
+            asset: "Object storage",
+            attackerCapability: "Submit input",
+            entryPoint: "ANY /api/example",
+            trustBoundary: "public to storage",
+            precondition: "The supported route is reachable.",
+            attackPath: ["User", "Route", "Storage"],
+            potentialImpact: "Unexpected content may reach storage.",
+            existingControls: [],
+            missingControls: ["Verified authentication", "Payload or file size limit"],
+            securityInvariant: "Storage writes must be authenticated and bounded.",
+            evidence: [evidence],
+            confidence: 0.8,
+            verificationHistory: [],
+            createdAt: "2026-07-19T12:00:00.000Z",
+            updatedAt: "2026-07-19T12:00:00.000Z"
+          }
+        ]
+      : [],
     integrity: {
       untrustedInstructionsObserved: false,
       analysisBoundaryHeld: true,
@@ -484,8 +537,8 @@ function fakeExecution(
     },
     exactEvidence: {
       valid: true,
-      acceptedModelFindings: 0,
-      acceptedEvidenceReferences: 0,
+      acceptedModelFindings: includeModelFinding ? 1 : 0,
+      acceptedEvidenceReferences: includeModelFinding ? 1 : 0,
       rejectedProposals: 1,
       invalidModelFindings: 0
     },

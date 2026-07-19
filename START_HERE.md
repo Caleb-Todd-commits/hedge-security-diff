@@ -22,9 +22,9 @@ npm run audit:high
 
 Current included validation target:
 
-- 121 unit, workflow-contract, replay, and schema tests.
-- 45 deterministic DriftBench cases.
-- Next.js routes, middleware, Server Actions, Express ordering/scope, Prisma, GitHub workflow, policy, report, state-integrity, migration, and adversarial fixtures.
+- 259 unit, workflow-contract, replay, and schema tests.
+- 47 deterministic DriftBench cases.
+- Next.js App Router routes, Pages API routes, middleware, Server Actions, Express ordering/scope, Prisma, GitHub workflow, policy, report, state-integrity, migration, and adversarial fixtures.
 - Demo repository branch materialization and counterfactual upload witness.
 
 These numbers describe only the included corpus, not general vulnerability-detection accuracy.
@@ -52,9 +52,17 @@ node dist/cli/index.cjs replay examples/replays/upload-invariant --output .hedge
 ## Install into a judge repository
 
 ```bash
-hedge install --action-ref Caleb-Todd-commits/hedge-security-diff@2c900a72eb3fc6b0b1e41633f0338bd57c6deb3f --full
-hedge doctor
-hedge init --configure
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/hedge-v0.5.2-bundles.zip
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/hedge-v0.5.2-SHA256SUMS
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/manifest.json
+curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/download/v0.5.2/security-diff.html
+shasum -a 256 -c hedge-v0.5.2-SHA256SUMS
+unzip hedge-v0.5.2-bundles.zip
+node hedge-v0.5.2/dist/cli/index.cjs install \
+  --action-ref Caleb-Todd-commits/hedge-security-diff@FULL_40_CHARACTER_COMMIT_SHA \
+  --full
+node hedge-v0.5.2/dist/cli/index.cjs doctor
+node hedge-v0.5.2/dist/cli/index.cjs init --configure
 ```
 
 ## Read in this order
@@ -70,4 +78,4 @@ hedge init --configure
 
 ## Highest-value remaining work
 
-Publish the Action at an immutable commit, install it in a real GitHub repository, run repeated API-backed Luna/Sol evaluations, measure median/P95 usage and latency, and capture the full live sequence: security diff → `@hedge fix` → draft Codex PR → vulnerable witness → repaired witness blocked → architecture-control confirmation → reviewable verified-state PR.
+Human-review the frozen evaluation adjudication sheet, then publish the proven commit and immutable release artifacts. Do not rerun or tune against the frozen corpus: its recorded operational gate failed and is part of the release evidence.
