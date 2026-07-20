@@ -82,6 +82,8 @@ node hedge-v0.5.2/dist/cli/index.cjs init --configure
 
 Replace the placeholder with the immutable commit SHA displayed in the v0.5.2 release. Linux users can verify with `sha256sum -c` instead of `shasum -a 256 -c`.
 
+For workflows that open reviewable model-refresh, risk-acceptance, remediation, or verification-state pull requests, enable **Settings > Actions > General > Allow GitHub Actions to create and approve pull requests** in the target repository. The primary security-diff workflow can still publish its PR report without this setting.
+
 ### Try Hedge on your repo
 
 Use a same-repository TypeScript pull request that changes a supported security architecture surface. The strongest current targets are Next.js App Router route handlers, Next.js Pages API routes, basic Express routes, Prisma/storage/network operations, GitHub workflow authority changes, and authentication, authorization, ownership, validation, rate-limit, size-limit, and content-type controls.
