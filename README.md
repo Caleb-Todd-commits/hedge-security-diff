@@ -13,7 +13,45 @@ Hedge is a TypeScript GitHub Action and CLI that maintains an evidence-linked se
 
 Hedge **surfaces attack-surface changes and design risks**. It does not claim to find or prove vulnerabilities.
 
-## What is implemented
+## Why Hedge exists
+
+Most security tools answer a repository-wide question: "What looks wrong?" Pull-request reviewers have a different problem. They need to know what security architecture changed, which conclusion is backed by code, what remains unknown, and what evidence would prove that a mitigation actually worked.
+
+Hedge is built around that review unit. It compares exact Git revisions, turns supported TypeScript behavior into an attack-surface graph, and reports only meaningful architecture deltas. A new public route, removed authorization check, request-influenced storage write, secret-bearing workflow, or changed trust boundary becomes a reviewable fact with file-and-line evidence. A comment-only refactor stays silent.
+
+The narrow scope is intentional. I would rather disclose partial coverage on Next.js and Express than make a model sound certain about a framework Hedge does not understand.
+
+## What happens on a pull request
+
+1. Hedge reads bounded source bytes from the exact base and head commits without executing target code.
+2. Handler-scoped TypeScript analysis builds two evidence-linked architecture graphs and computes the delta.
+3. Complete no-delta and routine deterministic results use no model. Sensitive or ambiguous deltas route through a bounded GPT-5.6 path.
+4. Model proposals must cite the deterministic evidence index. Unsupported proposals are rejected.
+5. Trusted invariants and policy produce the recorded `ALLOW`, `WARN`, or `BLOCK` decision.
+6. A finding reaches `verified` only after the same sealed witness reproduces the behavior before the repair, is blocked afterward, legitimate behavior still succeeds, and the intended architecture control changed.
+
+## Proof, not promises
+
+| Question                                         | Recorded result                                                                                                                                                                     | Claim boundary                                                                                                                              |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Can judges run it?                               | Prebuilt v0.5.2 Action and CLI bundles, a hosted no-install dashboard, deterministic replay, and green public CI.                                                                   | macOS/Linux and same-repository pull requests are the validated path.                                                                       |
+| Does the deterministic core behave consistently? | 259 tests pass across 53 files; all 47 bundled DriftBench cases pass with deterministic stability and benign silence.                                                               | These are reviewed fixtures for supported patterns, not general accuracy.                                                                   |
+| Does it work on real repository shapes?          | Source-only tests on a Next.js App Router repo, Pages API repo, and Express repo were silent on benign changes and produced exact evidence for supported upload/storage changes.    | Two repositories correctly reported partial coverage; no target code or model was run.                                                      |
+| Did the live GitHub path work?                   | One benign PR produced no comment and no model call. One architecture-changing PR completed `collect -> reason -> publish`, rejected an unsupported proposal, and recorded `BLOCK`. | This is one successful canary, not fleet reliability.                                                                                       |
+| Was model behavior stable?                       | The frozen batch recorded all 30 requested runs and retained 100% exact-evidence validity for accepted output.                                                                      | Twelve of 27 model-routed runs failed and only 2 of 10 case signatures were stable, so the operational gate is honestly recorded as `FAIL`. |
+| Can Codex repair a finding?                      | Codex produced a source-bound, digest-bound three-file patch.                                                                                                                       | Generic target validation stopped on an empty Vitest suite, so automated remediation publication remains experimental.                      |
+| Can Hedge prove a repair?                        | One remote run passed vulnerable reproduction, repaired blocking, legitimate behavior, and exact architecture-control change; HEDGE-009 reached `verified`.                         | One canary does not establish witness quality across arbitrary repositories.                                                                |
+
+The full evidence, including unsuccessful runs, is in [`docs/VALIDATION.md`](docs/VALIDATION.md), [`docs/EVALUATION.md`](docs/EVALUATION.md), and the [judge-lab repository](https://github.com/Caleb-Todd-commits/hedge-judge-lab).
+
+## Judge in 60 seconds
+
+1. Open the [hosted security-diff dashboard](https://caleb-todd-commits.github.io/hedge-security-diff/) to inspect the architecture delta, findings, evidence model, coverage, and recorded decision without installing anything.
+2. Compare [the benign PR](https://github.com/Caleb-Todd-commits/hedge-judge-lab/pull/1), where Hedge stayed silent and used no model, with [the live architecture-changing PR](https://github.com/Caleb-Todd-commits/hedge-judge-lab/pull/2), where the complete credential-separated path published exact evidence.
+3. Inspect [the verification state PR](https://github.com/Caleb-Todd-commits/hedge-judge-lab/pull/8) for the four requirements behind `verified`.
+4. Use the [v0.5.2 release](https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/tag/v0.5.2) for a checksum-verified install without rebuilding.
+
+## Implementation inventory
 
 - `hedge install`, `hedge doctor`, `hedge init`, `hedge context`, `hedge check`, `hedge explain`, `hedge history`, `hedge witness`, `hedge bundle`, `hedge verify-bundle`, `hedge status`, `hedge prune`, `hedge verify`, `hedge fix-plan`, `hedge replay`, and `hedge eval`.
 - Node 24 GitHub Action bundle and Node 22 CLI bundle.
@@ -261,6 +299,14 @@ node dist/cli/index.cjs replay examples/replays/upload-invariant --output .hedge
 
 See `docs/REPLAY.md`.
 
+## What I would build next
+
+The next milestone is reliability, not another logo on a framework list: complete the automated remediation publication contract, improve model-run stability, deepen cross-file TypeScript control resolution, and expand the held-out expert corpus. After that, framework and language adapters can reuse the existing graph, evidence, policy, reporting, and verification layers.
+
+Under a one-engineer-plus-Codex assumption, a narrow FastAPI/Flask alpha is roughly 4-6 weeks and release-quality Python support is roughly 8-12 weeks. A Go HTTP/Gin/Chi adapter is approximately 5-7 weeks for an alpha and 9-12 weeks for the same release bar. Rails is approximately 10-14 weeks and Spring 12-16 weeks because convention, metaprogramming, annotations, dependency injection, and build ecosystems require more than endpoint matching. These estimates include exact evidence, explicit coverage, fixtures, real-repository tests, packaging, and documentation; a regex-only adapter would be faster and would violate Hedge's contract.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the assumptions, detection priorities, and release criteria behind those ranges.
+
 ## Honest limitations
 
 The Build Week implementation is narrow by design: TypeScript, Next.js App Router, Next.js Pages API routes, basic Express, common Prisma/storage/network patterns, and same-repository PRs. It does not perform complete interprocedural data-flow analysis, prove deployment exposure, replace SAST/DAST or human review, or guarantee that Codex can safely repair every surfaced risk. A live judge-lab run proved the credential-separated `collect -> reason -> publish` path and recorded decision. A separate live run proved all four counterfactual verification requirements for one finding. Codex produced a bounded repair artifact, but its automated target-test and draft-publication path did not complete, so remediation publication remains experimental rather than being presented as a production guarantee.
@@ -270,6 +316,7 @@ The Build Week implementation is narrow by design: TypeScript, Next.js App Route
 - Design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/SECURITY.md`](docs/SECURITY.md), and [`docs/SELF_THREAT_MODEL.md`](docs/SELF_THREAT_MODEL.md).
 - Evidence: [`docs/VALIDATION.md`](docs/VALIDATION.md), [`docs/EVALUATION.md`](docs/EVALUATION.md), and [`docs/REAL_REPOSITORY_VALIDATION.md`](docs/REAL_REPOSITORY_VALIDATION.md).
 - Trust and scope: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md), [`docs/DECISIONS.md`](docs/DECISIONS.md), and [`docs/REPLAY.md`](docs/REPLAY.md).
+- Future work: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - Build Week provenance: [`docs/BUILD_WEEK_PROVENANCE.md`](docs/BUILD_WEEK_PROVENANCE.md) and [`docs/CODEX_WORKFLOW.md`](docs/CODEX_WORKFLOW.md).
 
 ## How Codex and GPT-5.6 shaped Hedge

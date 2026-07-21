@@ -3,8 +3,8 @@
 > Generated from Git-tracked and non-ignored project files. Local secrets, build output, and this manifest file are excluded from the listing.
 
 - Version: 0.5.2
-- Files: 467
-- Uncompressed bytes: 14679276
+- Files: 468
+- Uncompressed bytes: 14696766
 
 | File                                                                                                      |    Bytes |
 | --------------------------------------------------------------------------------------------------------- | -------: |
@@ -24,14 +24,15 @@
 | `CONTRIBUTING.md`                                                                                         |      459 |
 | `dist/action/index.cjs`                                                                                   | 12768601 |
 | `docs/ARCHITECTURE.md`                                                                                    |    11179 |
-| `docs/BUILD_WEEK_PROVENANCE.md`                                                                           |     3085 |
+| `docs/BUILD_WEEK_PROVENANCE.md`                                                                           |     5808 |
 | `docs/CODEX_WORKFLOW.md`                                                                                  |     2270 |
-| `docs/DECISIONS.md`                                                                                       |    43626 |
+| `docs/DECISIONS.md`                                                                                       |    44345 |
 | `docs/EVALUATION.md`                                                                                      |     8051 |
 | `docs/LIMITATIONS.md`                                                                                     |     6555 |
 | `docs/REAL_REPOSITORY_VALIDATION.md`                                                                      |     3585 |
 | `docs/REFERENCES.md`                                                                                      |     1440 |
 | `docs/REPLAY.md`                                                                                          |     1410 |
+| `docs/ROADMAP.md`                                                                                         |     6596 |
 | `docs/SECURITY.md`                                                                                        |     9540 |
 | `docs/SELF_THREAT_MODEL.md`                                                                               |     7608 |
 | `docs/VALIDATION.md`                                                                                      |     6326 |
@@ -335,7 +336,7 @@
 | `LICENSE`                                                                                                 |     1075 |
 | `package-lock.json`                                                                                       |    78237 |
 | `package.json`                                                                                            |     2098 |
-| `README.md`                                                                                               |    20145 |
+| `README.md`                                                                                               |    27597 |
 | `schemas/analysis-result.schema.json`                                                                     |    22086 |
 | `schemas/attack-surface.schema.json`                                                                      |    13182 |
 | `schemas/collection-bundle.schema.json`                                                                   |   154959 |
