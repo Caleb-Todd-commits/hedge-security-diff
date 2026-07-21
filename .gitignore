@@ -10,3 +10,4 @@ coverage/
 .hedge/tmp/
 .DS_Store
 *.log
+video/

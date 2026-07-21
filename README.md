@@ -74,13 +74,13 @@ curl -LO https://github.com/Caleb-Todd-commits/hedge-security-diff/releases/down
 shasum -a 256 -c hedge-v0.5.2-SHA256SUMS
 unzip hedge-v0.5.2-bundles.zip
 node hedge-v0.5.2/dist/cli/index.cjs install \
-  --action-ref Caleb-Todd-commits/hedge-security-diff@FULL_40_CHARACTER_COMMIT_SHA \
+  --action-ref Caleb-Todd-commits/hedge-security-diff@b644e7b6ef49029c437a647814cf63e48666380b \
   --full
 node hedge-v0.5.2/dist/cli/index.cjs doctor
 node hedge-v0.5.2/dist/cli/index.cjs init --configure
 ```
 
-Replace the placeholder with the immutable commit SHA displayed in the v0.5.2 release. Linux users can verify with `sha256sum -c` instead of `shasum -a 256 -c`.
+Linux users can verify with `sha256sum -c` instead of `shasum -a 256 -c`.
 
 For workflows that open reviewable model-refresh, risk-acceptance, remediation, or verification-state pull requests, enable **Settings > Actions > General > Allow GitHub Actions to create and approve pull requests** in the target repository. The primary security-diff workflow can still publish its PR report without this setting.
 
@@ -267,7 +267,10 @@ The Build Week implementation is narrow by design: TypeScript, Next.js App Route
 
 ## Documentation
 
-Start with [`START_HERE.md`](START_HERE.md), then read [`MASTER_PLAN.md`](MASTER_PLAN.md), [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md), [`docs/SECURITY.md`](docs/SECURITY.md), and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md). Build Week contribution boundaries and snapshot evidence are recorded in [`docs/BUILD_WEEK_PROVENANCE.md`](docs/BUILD_WEEK_PROVENANCE.md).
+- Design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/SECURITY.md`](docs/SECURITY.md), and [`docs/SELF_THREAT_MODEL.md`](docs/SELF_THREAT_MODEL.md).
+- Evidence: [`docs/VALIDATION.md`](docs/VALIDATION.md), [`docs/EVALUATION.md`](docs/EVALUATION.md), and [`docs/REAL_REPOSITORY_VALIDATION.md`](docs/REAL_REPOSITORY_VALIDATION.md).
+- Trust and scope: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md), [`docs/DECISIONS.md`](docs/DECISIONS.md), and [`docs/REPLAY.md`](docs/REPLAY.md).
+- Build Week provenance: [`docs/BUILD_WEEK_PROVENANCE.md`](docs/BUILD_WEEK_PROVENANCE.md) and [`docs/CODEX_WORKFLOW.md`](docs/CODEX_WORKFLOW.md).
 
 ## How Codex and GPT-5.6 shaped Hedge
 

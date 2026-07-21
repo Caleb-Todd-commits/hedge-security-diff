@@ -34,8 +34,9 @@ Codex work after the tag is visible as ordinary dated Git commits. It includes i
 
 The participant owns the idea, product direction, security contract, submission, and final decisions. Model output and repository content are treated as untrusted inputs to the implementation and review process.
 
-## Submission evidence still required
+## Final public evidence
 
-- Preserve the original ChatGPT conversation or export with timestamps.
-- Run `/feedback` in the Codex thread where the majority of the final core functionality is built and place that session ID only in the Devpost form unless public disclosure is intended.
-- Preserve the final public commit SHA, release artifact digests, public video URL, and Devpost confirmation.
+- Release `v0.5.2` points to immutable commit `b644e7b6ef49029c437a647814cf63e48666380b`.
+- The published release includes SHA-256 checksums and a manifest binding the prebuilt bundles to that source commit.
+- Deterministic, live-model, real-repository, remediation, and verification outcomes are recorded in the validation and evaluation documents without hiding failed runs.
+- Original conversations, the Codex `/feedback` session ID, and Devpost confirmation remain submission records rather than public repository content.

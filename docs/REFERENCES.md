@@ -17,4 +17,4 @@ Accessed July 13, 2026.
 - OpenAI Codex GitHub Action: https://developers.openai.com/codex/github-action
 - OpenAI GitHub Actions workload identity federation: https://developers.openai.com/api/docs/guides/workload-identity-federation/github-actions
 
-Reverify model IDs, SDK syntax, pricing, Action versions, and challenge rules immediately before final submission.
+These version-sensitive references should be rechecked before a future release.

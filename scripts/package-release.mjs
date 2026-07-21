@@ -23,7 +23,6 @@ try {
   const paths = [
     "LICENSE",
     "README.md",
-    "START_HERE.md",
     "action.yml",
     "dist/action/index.cjs",
     "dist/cli/index.cjs",
